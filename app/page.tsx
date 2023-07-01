@@ -24,36 +24,26 @@ export default function Home() {
   const [currentStation, setCurrentStation] = useState<string | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string>("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("");
+  const [selectedGenre, setSelectedGenre] = useState<string>("house");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("english");
 
   const api = new RadioBrowserApi(appName);
 
   useEffect(() => {
     const fetchStations = async () => {
-      const queryParams: StationQueryParams = {
-        limit: 20,
-        order: "random",
-      };
+      try {
+        const response = await fetch(
+          `/api/stations?limit=20&language=${selectedLanguage}&tag=${selectedGenre}`
+        );
 
-      if (selectedRegion) {
-        queryParams.region = selectedRegion;
-      }
+        if (!response.ok) {
+          throw new Error("Failed to fetch stations");
+        }
 
-      if (selectedGenre) {
-        queryParams.tag = selectedGenre;
-      }
-
-      if (selectedLanguage) {
-        queryParams.language = selectedLanguage;
-      }
-
-      const response = await api
-        .searchStations(queryParams)
-        .catch((error) => console.error("Error fetching stations:", error));
-
-      if (response && response.length) {
-        setStations(response);
+        const data = await response.json();
+        setStations(data);
+      } catch (error) {
+        console.error("Error fetching stations:", error);
       }
     };
 
