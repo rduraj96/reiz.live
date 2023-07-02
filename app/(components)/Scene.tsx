@@ -51,6 +51,7 @@ const AsciiEffectScene: React.FC = () => {
         invert: true,
       });
       effect.setSize(width, height);
+      effect.domElement.style.color = "gray";
 
       container.appendChild(effect.domElement);
       //   container.appendChild(gui.domElement);
