@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import {
@@ -28,9 +30,9 @@ const AsciiEffectScene: React.FC = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
 
-      camera = new THREE.PerspectiveCamera(70, width / height, 1, 1000);
-      camera.position.y = 150;
-      camera.position.z = 500;
+      camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000);
+      // camera.position.y = 150;
+      camera.position.z = 10;
 
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0, 0, 0);
@@ -63,7 +65,7 @@ const AsciiEffectScene: React.FC = () => {
 
       // Load model
       const loader = new GLTFLoader();
-      const gltf = await loader.loadAsync("/blob.glb");
+      const gltf = await loader.loadAsync("/cassette2.glb");
       model = gltf.scene;
       model.scale.set(1.2, 1.2, 1.2);
       scene.add(model);
@@ -89,11 +91,11 @@ const AsciiEffectScene: React.FC = () => {
     };
 
     const render = () => {
-      if (model && scene && effect) {
-        const timer = Date.now();
-        // model.rotation.y = timer * 0.0002;
-        // model.rotation.x = timer * 0.0001;
-      }
+      // if (model && scene && effect) {
+      //   const timer = Date.now();
+      //   model.rotation.y = timer * 0.0002;
+      //   model.rotation.x = timer * 0.0001;
+      // }
 
       if (controls) {
         controls.update();
