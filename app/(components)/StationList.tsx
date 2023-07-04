@@ -15,7 +15,7 @@ const StationList: React.FC<StationListProps> = ({
     <select
       value={currentStation || ""}
       onChange={(e) => selectStation(e.target.value)}
-      className="p-2 mb-4 rounded-md border border-gray-300"
+      className="p-2 mb-4 my-3 bg-transparent text-gray-200"
     >
       <option value="">Select a station</option>
       {stations.map((station) => (
