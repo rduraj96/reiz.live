@@ -1,7 +1,9 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { Inconsolata } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inconsolata({
+  subsets: ["latin"],
+});
 
 export const metadata = {
   title: "Reiz FM",
