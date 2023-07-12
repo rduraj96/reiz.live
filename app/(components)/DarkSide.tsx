@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { GUI } from "dat.gui";
 import {
   BokehPass,
   EffectComposer,
@@ -12,7 +11,6 @@ import {
   ShaderPass,
   UnrealBloomPass,
 } from "three-stdlib";
-import ReactAudioPlayer from "react-audio-player";
 import YouTubeAudioPlayer from "./YouTubeAudioPlayer";
 
 const DarkSide: React.FC = () => {
@@ -249,164 +247,6 @@ const DarkSide: React.FC = () => {
       orbitControls = new OrbitControls(camera, renderer.domElement);
       container.appendChild(renderer.domElement);
       window.addEventListener("resize", handleResize);
-
-      // GUI Controls
-      const gui = new GUI();
-      const bloomFolder = gui.addFolder("bloom");
-
-      bloomFolder.add(params, "threshold", 0.0, 1.0).onChange(function (value) {
-        bloomPass.threshold = Number(value);
-      });
-
-      bloomFolder.add(params, "strength", 0.0, 3.0).onChange(function (value) {
-        bloomPass.strength = Number(value);
-      });
-
-      gui.add(planeGroup.position, "x", -10, 10, 0.1);
-      gui.add(planeGroup.position, "y", -10, 10, 0.1);
-      gui.add(planeGroup.position, "z", -10, 10, 0.1);
-      gui.add(planeGroup.rotation, "x", -5, 5, 0.1);
-      gui.add(planeGroup.rotation, "y", -5, 5, 0.1);
-      gui.add(planeGroup.rotation, "z", -5, 5, 0.1);
-
-      gui
-        .add(params, "radius", 0.0, 1.0)
-        .step(0.01)
-        .onChange(function (value) {
-          bloomPass.radius = Number(value);
-        });
-      const prismFolder = gui.addFolder("Prism");
-      prismFolder.add(prismMesh, "visible").name("Visible");
-      prismFolder
-        .add(prismMaterial, "metalness", 0, 1.0, 0.01)
-        .name("Metalness");
-      prismFolder
-        .add(prismMaterial, "roughness", 0, 1.0, 0.01)
-        .name("Roughness");
-      prismFolder
-        .add(prismMaterial, "transmission", 0, 1.0, 0.01)
-        .name("Transmission");
-      prismFolder
-        .add(prismMaterial, "clearcoat", 0, 1.0, 0.01)
-        .name("Clearcoat");
-      prismFolder
-        .add(prismMaterial, "clearcoatRoughness", 0, 1.0, 0.01)
-        .name("ClearcoatRoughness");
-      prismFolder
-        .add(prismMaterial, "reflectivity", 0, 1.0, 0.01)
-        .name("Reflectivity");
-      prismFolder.add(prismMaterial, "ior", 1.0, 2.333, 0.01).name("IOR");
-      prismFolder
-        .add(prismMaterial, "thickness", 0, 50.0, 0.1)
-        .name("thickness");
-      prismFolder.open();
-      const prismMeshFolder = gui.addFolder("Prism Mesh");
-      prismMeshFolder
-        .add(prismMesh.position, "x", -5, 5, 0.1)
-        .name("X Position");
-      prismMeshFolder
-        .add(prismMesh.position, "y", -5, 5, 0.1)
-        .name("Y Position");
-      prismMeshFolder
-        .add(prismMesh.position, "z", -5, 5, 0.1)
-        .name("Z Position");
-      const prismMeshRotationFolder = prismMeshFolder.addFolder("Rotation");
-      prismMeshRotationFolder
-        .add(prismMesh.rotation, "x", 0, Math.PI * 2, 0.01)
-        .name("X Rotation");
-      prismMeshRotationFolder
-        .add(prismMesh.rotation, "y", 0, Math.PI * 2, 0.01)
-        .name("Y Rotation");
-      prismMeshRotationFolder
-        .add(prismMesh.rotation, "z", 0, Math.PI * 2, 0.01)
-        .name("Z Rotation");
-      // prismMeshFolder.open();
-
-      const lightsFolder = gui.addFolder("Lights");
-      lightsFolder
-        .add(directionalLight.position, "x", -5, 5, 0.1)
-        .name("Directional Light X");
-      lightsFolder
-        .add(directionalLight.position, "y", -5, 5, 0.1)
-        .name("Directional Light Y");
-      lightsFolder
-        .add(directionalLight.position, "z", -5, 5, 0.1)
-        .name("Directional Light Z");
-      lightsFolder
-        .add(directionalLight, "intensity", 0, 2, 0.1)
-        .name("Directional Light Intensity");
-      lightsFolder
-        .add(spotLight.position, "x", -5, 5, 0.1)
-        .name("Spot Light X");
-      lightsFolder
-        .add(spotLight.position, "y", -5, 5, 0.1)
-        .name("Spot Light Y");
-      lightsFolder
-        .add(spotLight.position, "z", -5, 5, 0.1)
-        .name("Spot Light Z");
-      lightsFolder
-        .add(spotLight, "intensity", 0, 2, 0.1)
-        .name("Spot Light Intensity");
-      // lightsFolder.open();
-
-      const lightBeamFolder = gui.addFolder("Light Beam");
-      lightBeamFolder
-        .add(lightBeam.position, "x", -5, 5, 0.1)
-        .name("X Position");
-      lightBeamFolder
-        .add(lightBeam.position, "y", -5, 5, 0.1)
-        .name("Y Position");
-      lightBeamFolder
-        .add(lightBeam.position, "z", -5, 5, 0.1)
-        .name("Z Position");
-      const lightBeamRotationFolder = lightBeamFolder.addFolder("Rotation");
-      lightBeamRotationFolder
-        .add(lightBeam.rotation, "x", 0, Math.PI * 2, 0.01)
-        .name("X Rotation");
-      lightBeamRotationFolder
-        .add(lightBeam.rotation, "y", 0, Math.PI * 2, 0.01)
-        .name("Y Rotation");
-      lightBeamRotationFolder
-        .add(lightBeam.rotation, "z", 0, Math.PI * 2, 0.01)
-        .name("Z Rotation");
-      // lightBeamFolder.open();
-
-      // const rainbowBeamFolder = gui.addFolder("Rainbow Beam");
-      // rainbowBeamFolder
-      //   .add(rainbowBeam.position, "x", -5, 5, 0.1)
-      //   .name("X Position");
-      // rainbowBeamFolder
-      //   .add(rainbowBeam.position, "y", -5, 5, 0.1)
-      //   .name("Y Position");
-      // rainbowBeamFolder
-      //   .add(rainbowBeam.position, "z", -5, 5, 0.1)
-      //   .name("Z Position");
-      // const rainbowBeamRotationFolder = rainbowBeamFolder.addFolder("Rotation");
-      // rainbowBeamRotationFolder
-      //   .add(rainbowBeam.rotation, "x", 0, Math.PI * 2, 0.01)
-      //   .name("X Rotation");
-      // rainbowBeamRotationFolder
-      //   .add(rainbowBeam.rotation, "y", 0, Math.PI * 2, 0.01)
-      //   .name("Y Rotation");
-      // rainbowBeamRotationFolder
-      //   .add(rainbowBeam.rotation, "z", 0, Math.PI * 2, 0.01)
-      //   .name("Z Rotation");
-
-      const conBeamFolder = gui.addFolder("Connection Beam");
-      conBeamFolder.add(conBeam.position, "x", -5, 5, 0.1).name("X Position");
-      conBeamFolder.add(conBeam.position, "y", -5, 5, 0.1).name("Y Position");
-      conBeamFolder.add(conBeam.position, "z", -5, 5, 0.1).name("Z Position");
-      const conBeamRotationFolder = conBeamFolder.addFolder("Rotation");
-      conBeamRotationFolder
-        .add(conBeam.rotation, "x", 0, Math.PI * 2, 0.01)
-        .name("X Rotation");
-      conBeamRotationFolder
-        .add(conBeam.rotation, "y", 0, Math.PI * 2, 0.01)
-        .name("Y Rotation");
-      conBeamRotationFolder
-        .add(conBeam.rotation, "z", 0, Math.PI * 2, 0.01)
-        .name("Z Rotation");
-      // conBeamFolder.open();
     };
 
     const handleResize = () => {
@@ -419,19 +259,15 @@ const DarkSide: React.FC = () => {
     };
 
     const animateColors = () => {
-      // Calculate the time-based color values
-      const time = Date.now() * 0.001; // Convert time to seconds
-      const colorSpeed = 0.05; // Color change speed
-      const colorRange = 0.35; // Color variation range
+      const time = Date.now() * 0.001;
+      const colorSpeed = 0.05;
+      const colorRange = 0.35;
 
-      // Loop through each plane and update its color
       planeGroup.children.forEach((plane, index) => {
-        // Calculate the color value based on time and index
         const hue = ((time + index * colorSpeed) % 1) * 360;
         const saturation = 100;
         const lightness = 50 + Math.sin(time * colorSpeed + index) * colorRange;
 
-        // Set the new color of the plane
         (plane as any).material.color.setHSL(
           hue / 360,
           saturation / 100,
@@ -439,10 +275,7 @@ const DarkSide: React.FC = () => {
         );
       });
 
-      // Render the updated scene
       renderer.render(scene, camera);
-
-      // Request the next animation frame
       requestAnimationFrame(animateColors);
     };
 

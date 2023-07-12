@@ -2,26 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   AsciiEffect,
-  TrackballControls,
   OrbitControls,
   EffectComposer,
   RenderPass,
   GlitchPass,
   SSAOPass,
-  UnrealBloomPass,
-  BloomPass,
-  ClearPass,
-  FilmPass,
-  OutlinePass,
   DotScreenPass,
   ShaderPass,
   RGBShiftShader,
 } from "three-stdlib";
-import { createNoise2D, createNoise3D } from "simplex-noise";
-import { RGBELoader } from "three-stdlib";
-import { SpotLight } from "@react-three/drei";
+import { createNoise3D } from "simplex-noise";
 import { AnimatePresence } from "framer-motion";
-import { GUI } from "dat.gui";
 import { Pause, Play } from "lucide-react";
 
 type AudioVizualizerBlobProps = {
@@ -42,11 +33,7 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       setPlaying(false);
     } else {
       if (!stationURL) return;
-      audioElementRef.current = new Audio(
-        // "https://streams.rautemusik.fm/techno/mp3-192/?ref=radiobrowser"
-        // "https://main-high.rautemusik.fm/?ref=radiobrowser"
-        stationURL
-      );
+      audioElementRef.current = new Audio(stationURL);
       audioElementRef.current.preload = "auto";
       audioElementRef.current.crossOrigin = "anonymous";
 
@@ -69,7 +56,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
 
   useEffect(() => {
     let camera: THREE.PerspectiveCamera;
-    // let controls: TrackballControls;
     let orbitControls: OrbitControls;
     let scene: THREE.Scene;
     let blobMesh: THREE.Mesh<
@@ -86,8 +72,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
     let shaderMaterial: THREE.ShaderMaterial;
     let glitchPass: GlitchPass;
 
-    // const gui = new GUI();
-
     const init = () => {
       const container = canvasRef.current;
       if (!container || scene) return;
@@ -97,7 +81,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
 
       scene = new THREE.Scene();
       scene.position.set(0, 0, 0);
-      // scene.background = new THREE.Color(0, 0, 0);
 
       camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
       camera.position.set(0, 0, 100);
@@ -144,10 +127,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       // boxMesh.position.set(0, 0, 0);
       // scene.add(boxMesh);
 
-      // gui.add(boxMesh.position, "x", -150, 150);
-      // gui.add(boxMesh.position, "y", -150, 150);
-      // gui.add(boxMesh.position, "z", -150, 150);
-
       const blobGeometry = new THREE.IcosahedronGeometry(10, 30);
       const blobMaterial = new THREE.MeshStandardMaterial({
         color: 0xffffff,
@@ -162,15 +141,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
 
       const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
       dirLight1.position.set(1, 1, 50);
-
-      // const spotLight = new THREE.SpotLight(0xc3ff01);
-      // spotLight.intensity = 0.75;
-      // // spotLight.angle = 0.36;
-      // spotLight.position.set(-50, -30, 0);
-      // spotLight.lookAt(blobMesh.position);
-      // spotLight.penumbra = 1;
-      // spotLight.decay = 0.5;
-      // scene.add(spotLight);
 
       // Create an EffectComposer
       composer = new EffectComposer(renderer);
@@ -222,7 +192,6 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
     };
 
     function onMouseDown(event: MouseEvent) {
-      // event.preventDefault();
       glitchPass.enabled = true;
       setTimeout(() => {
         glitchPass.enabled = false;

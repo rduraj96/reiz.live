@@ -1,17 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { RadioBrowserApi, Station } from "radio-browser-api";
 import StationList from "./(components)/StationList";
-import AsciiEffectScene from "./(components)/Scene";
-import SpectogramVisualizer from "./(components)/SpectogramVisualizer";
 import AudioVizualizerBlob from "./(components)/AudioVizualizerBlob";
 import { AnimatePresence, motion } from "framer-motion";
 import { RandomReveal } from "react-random-reveal"; // import Typed from "react-typed";
 import { RadioStation } from "./types";
 import DarkSide from "./(components)/DarkSide";
-
-const appName = "Reizdio";
 
 interface StationQueryParams {
   limit: number;
@@ -61,32 +56,6 @@ export default function Home() {
 
   const selectStation = (station: RadioStation) => {
     setCurrentStation(station);
-
-    // if (audioPlayer) {
-    //   if (audioPlayer.src === stationUrl) {
-    //     if (audioPlayer.paused) {
-    //       audioPlayer.play();
-    //     } else {
-    //       audioPlayer.pause();
-    //     }
-    //   } else {
-    //     audioPlayer.pause();
-    //     audioPlayer.src = stationUrl;
-    //     audioPlayer.play();
-    //   }
-    // }
-  };
-
-  const playStation = () => {
-    if (audioPlayer && audioPlayer.paused) {
-      audioPlayer.play();
-    }
-  };
-
-  const pauseStation = () => {
-    if (audioPlayer && !audioPlayer.paused) {
-      audioPlayer.pause();
-    }
   };
 
   return (
