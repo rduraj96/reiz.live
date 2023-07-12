@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { RadioBrowserApi, Station } from "radio-browser-api";
 import StationList from "./(components)/StationList";
-import MediaPlayer from "./(components)/MediaPlayer";
 import AsciiEffectScene from "./(components)/Scene";
 import SpectogramVisualizer from "./(components)/SpectogramVisualizer";
 import AudioVizualizerBlob from "./(components)/AudioVizualizerBlob";
