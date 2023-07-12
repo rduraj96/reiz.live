@@ -1,9 +1,10 @@
 import React from "react";
+import { RadioStation } from "../types";
 
 type StationListProps = {
-  stations: { name: string; url: string }[];
-  currentStation: string | null;
-  selectStation: (stationName: string) => void;
+  stations: RadioStation[];
+  currentStation: RadioStation | null;
+  selectStation: (station: RadioStation) => void;
 };
 
 const StationList: React.FC<StationListProps> = ({
@@ -13,14 +14,18 @@ const StationList: React.FC<StationListProps> = ({
 }) => {
   return (
     <select
-      value={currentStation || ""}
-      onChange={(e) => selectStation(e.target.value)}
+      value={currentStation?.urlResolved || ""}
+      onChange={(e) =>
+        selectStation(
+          stations.find((station) => station.urlResolved === e.target.value)!
+        )
+      }
       className="p-2 mb-4 my-3 bg-transparent text-gray-200"
     >
       <option value="">Select a station</option>
-      {stations.map((station) => (
-        <option key={station.url} value={station.url}>
-          {station.name}
+      {stations.map((station, i) => (
+        <option key={station.urlResolved} value={station.urlResolved}>
+          {`Station #${i + 1}`}
         </option>
       ))}
     </select>
