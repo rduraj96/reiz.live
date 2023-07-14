@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import {
   BokehPass,
   EffectComposer,
@@ -25,7 +24,6 @@ const DarkSide: React.FC = () => {
 
   useEffect(() => {
     let camera: THREE.PerspectiveCamera;
-    let orbitControls: OrbitControls;
     let scene: THREE.Scene;
     let renderer: THREE.WebGLRenderer;
     let prismMesh: THREE.Mesh<
@@ -243,8 +241,6 @@ const DarkSide: React.FC = () => {
       //   height: window.innerHeight,
       // });
       // composer.addPass(bokehPass);
-
-      orbitControls = new OrbitControls(camera, renderer.domElement);
       container.appendChild(renderer.domElement);
       window.addEventListener("resize", handleResize);
     };
@@ -287,7 +283,6 @@ const DarkSide: React.FC = () => {
     };
 
     const render = () => {
-      orbitControls.update();
       composer.render();
     };
 
