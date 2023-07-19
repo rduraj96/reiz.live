@@ -1,12 +1,21 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import StationList from "./(components)/StationList";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import AudioVizualizerBlob from "./(components)/AudioVizualizerBlob";
 import { AnimatePresence, motion } from "framer-motion";
 import { RandomReveal } from "react-random-reveal"; // import Typed from "react-typed";
 import { RadioStation } from "./types";
 import DarkSide from "./(components)/DarkSide";
+import { SelectGroup } from "@radix-ui/react-select";
+import ReactCountryFlag from "react-country-flag";
 
 interface StationQueryParams {
   limit: number;
@@ -20,9 +29,8 @@ export default function Home() {
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(
     null
   );
-  const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string>("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("house");
+  const [selectedGenre, setSelectedGenre] = useState<string>("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("english");
   const [showEgg, setShowEgg] = useState<boolean>(false);
 
@@ -44,14 +52,11 @@ export default function Home() {
       }
     };
 
-    fetchStations();
+    if (selectedGenre) {
+      fetchStations();
+    }
 
-    return () => {
-      if (audioPlayer) {
-        audioPlayer.pause();
-        audioPlayer.src = "";
-      }
-    };
+    return () => {};
   }, [selectedRegion, selectedGenre]);
 
   const selectStation = (station: RadioStation) => {
@@ -112,35 +117,56 @@ export default function Home() {
               transition={{ duration: 1, type: "" }}
               className="flex flex-col gap-5 space-y-3 w-fit absolute top-1/2 left-[15%] transform -translate-y-1/2 ml-10"
             >
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="block w-fit p-2 bg-transparent text-gray-200 text-xl"
-              >
-                <option value="">{"[ All Regions ]"}</option>
-                <option value="Africa">Africa</option>
-                <option value="Asia">Asia</option>
-                <option value="Europe">Europe</option>
-              </select>
+              <div className="text-gray-200">{`[ BROWSE ]`}</div>
 
-              <select
+              <Select
                 value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="block w-fit p-2 bg-transparent text-gray-200"
+                onValueChange={setSelectedGenre}
+                // defaultValue="Genre"
               >
-                <option value="">All Genres</option>
-                <option value="pop">Pop</option>
-                <option value="rock">Rock</option>
-                <option value="hip hop">Hip Hop</option>
-                <option value="dance">Dance</option>
-                <option value="house">House</option>
-              </select>
+                <SelectTrigger className="text-gray-200 border-none focus:ring-0 w-28">
+                  <SelectValue placeholder="Genre" />
+                </SelectTrigger>
+                <SelectContent className="overflow-scroll">
+                  <SelectGroup>
+                    <SelectLabel>Genres</SelectLabel>
+                    <SelectItem value="house">House</SelectItem>
+                    <SelectItem value="hip hop">Hip Hop</SelectItem>
+                    <SelectItem value="dance">Dance</SelectItem>
+                    <SelectItem value="rock">Rock</SelectItem>
+                    <SelectItem value="pop">Pop</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
 
-              <StationList
-                stations={stations}
-                currentStation={currentStation}
-                selectStation={selectStation}
-              />
+              {stations.length !== 0 && (
+                <Select
+                  value={currentStation?.urlResolved || ""}
+                  onValueChange={(e) =>
+                    selectStation(
+                      stations.find((station) => station.urlResolved === e)!
+                    )
+                  }
+                >
+                  <SelectTrigger className="mb-4 my-3 text-gray-200 max-w-46 line-clamp-1 whitespace-nowrap">
+                    <SelectValue placeholder="Station" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Available Stations</SelectLabel>
+                      {stations.map((station, i) => (
+                        <SelectItem
+                          key={station.urlResolved}
+                          value={station.urlResolved}
+                        >
+                          {/* {`Station #${i + 1}`} */}
+                          {station.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
             </motion.div>
 
             {currentStation && (
@@ -148,17 +174,27 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, type: "tween" }}
-                className="absolute sm top-1/2 right-[15%] transform -translate-y-1/2 mr-10"
+                className="absolute top-1/2 right-[15%] transform -translate-y-1/2 mr-10"
               >
-                <div className="flex flex-col gap-3 text-gray-400 text-lg overflow-x-hidden">
+                <div className="flex flex-col gap-3 text-gray-400 text-md overflow-x-hidden">
                   <div className="text-gray-200">{`[ NOW PLAYING ]`}</div>
                   <div className="relative flex gap-2 items-center justify-between mb-2 w-36">
                     <div className="whitespace-nowrap animate-marquee">
                       {currentStation.name}
                     </div>
                   </div>
-                  <div>{`.Bitrate ${currentStation.bitrate} kbps`}</div>
-                  <div>{`.Country ${currentStation.country}`}</div>
+                  <div>{`Bitrate ${currentStation.bitrate} kbps`}</div>
+                  <div className="flex gap-3">
+                    {`Country`}
+                    <span>
+                      <ReactCountryFlag
+                        countryCode={currentStation.countryCode}
+                        svg
+                        aria-label={currentStation.country}
+                        title={currentStation.countryCode}
+                      />
+                    </span>
+                  </div>
                   <a href={currentStation.homepage} target="_blank">
                     Go to website
                   </a>
