@@ -116,7 +116,7 @@ const YouTubeAudioPlayer: React.FC = () => {
           />
         </div>
         <div className="text-xl pb-4">
-          <div className="truncate w-full sm:w-80">
+          <div className="truncate w-full">
             {playlist[currentTrackIndex].title}
           </div>
         </div>

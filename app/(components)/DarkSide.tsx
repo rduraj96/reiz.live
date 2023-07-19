@@ -298,7 +298,7 @@ const DarkSide: React.FC = () => {
   return (
     <div>
       <div ref={canvasRef} />
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white bg-transparent">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white bg-transparent w-full md:w-80 px-5">
         <YouTubeAudioPlayer />
       </div>
     </div>
