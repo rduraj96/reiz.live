@@ -263,6 +263,7 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       const time = window.performance.now();
       const positionAttribute = geometry.getAttribute("position");
       const vertex = new THREE.Vector3();
+      const hf = 0.00001;
       for (let i = 0; i < positionAttribute.count; i++) {
         vertex.fromBufferAttribute(positionAttribute, i);
         vertex.normalize();
@@ -270,9 +271,9 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
           10 +
           bassFrequency +
           simplex(
-            vertex.x + time * 0.00007,
-            vertex.y + time * 0.00008,
-            vertex.z + time * 0.00009
+            vertex.x + time * hf * 7,
+            vertex.y + time * hf * 8,
+            vertex.z + time * hf * 9
           ) *
             amp *
             trebleFrequency;
