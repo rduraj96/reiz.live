@@ -95,7 +95,7 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ duration: 1, type: "tween" }}
               onClick={() => setShowEgg((prev) => !prev)}
-              className="absolute top-0 left-1/2 transform -translate-x-1/2 mt-20"
+              className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 mt-20"
             >
               <h1
                 className="text-4xl text-gray-200 font-bold mb-6"
@@ -106,7 +106,7 @@ export default function Home() {
                   duration={2}
                   revealDuration={0.3}
                   characters="REiZ"
-                  onComplete={() => ({ shouldRepeat: false })}
+                  onComplete={() => ({ shouldRepeat: true, delay: 5 })}
                 />
               </h1>
             </motion.div>
@@ -115,7 +115,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, type: "" }}
-              className="flex flex-col gap-5 space-y-3 w-fit absolute top-1/2 left-[15%] transform -translate-y-1/2 ml-10"
+              className="flex flex-col gap-5 space-y-3 w-fit absolute md:top-1/2 md:left-[15%] md:transform md:-translate-y-1/2 md:ml-10 top-5 left-5"
             >
               <div className="text-gray-200">{`[ BROWSE ]`}</div>
 
@@ -148,7 +148,7 @@ export default function Home() {
                     )
                   }
                 >
-                  <SelectTrigger className="mb-4 my-3 text-gray-200 max-w-46 line-clamp-1 whitespace-nowrap">
+                  <SelectTrigger className="mb-4 my-3 text-gray-200 w-32 line-clamp-1 whitespace-nowrap">
                     <SelectValue placeholder="Station" />
                   </SelectTrigger>
                   <SelectContent>
@@ -174,7 +174,7 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, type: "tween" }}
-                className="absolute top-1/2 right-[15%] transform -translate-y-1/2 mr-10"
+                className="absolute md:top-1/2 md:right-[15%] md:transform md:-translate-y-1/2 md:mr-10 top-5 right-5"
               >
                 <div className="flex flex-col gap-3 text-gray-400 text-md overflow-x-hidden">
                   <div className="text-gray-200">{`[ NOW PLAYING ]`}</div>
