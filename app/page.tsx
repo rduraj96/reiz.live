@@ -26,11 +26,10 @@ interface StationQueryParams {
 }
 export default function Home() {
   const [stations, setStations] = useState<RadioStation[]>([]);
-  const [currentStation, setCurrentStation] = useState<RadioStation | null>(
-    null
+  const [currentStation, setCurrentStation] = useState<RadioStation>(
+    stations[0]
   );
-  const [selectedRegion, setSelectedRegion] = useState<string>("");
-  const [selectedGenre, setSelectedGenre] = useState<string>("");
+  const [selectedGenre, setSelectedGenre] = useState<string>();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("english");
   const [showEgg, setShowEgg] = useState<boolean>(false);
 
@@ -38,7 +37,7 @@ export default function Home() {
     const fetchStations = async () => {
       try {
         const response = await fetch(
-          `/api/stations?limit=20&language=${selectedLanguage}&tag=${selectedGenre}`
+          `/api/stations?limit=30&language=${selectedLanguage}&tag=${selectedGenre}`
         );
 
         if (!response.ok) {
@@ -57,14 +56,14 @@ export default function Home() {
     }
 
     return () => {};
-  }, [selectedRegion, selectedGenre]);
+  }, [selectedGenre, selectedLanguage]);
 
   const selectStation = (station: RadioStation) => {
     setCurrentStation(station);
   };
 
   return (
-    <div className="relative h-screen max-h-screen bg-foreground">
+    <div className="relative h-screen bg-foreground">
       <AnimatePresence>
         {showEgg ? (
           <motion.div
@@ -115,48 +114,68 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, type: "" }}
-              className="flex flex-col gap-5 space-y-3 w-fit absolute md:top-1/2 md:left-[15%] md:transform md:-translate-y-1/2 md:ml-10 top-5 left-5"
+              className="flex flex-col space-y-3 w-fit absolute md:top-1/2 md:left-[10%] xl:left-[20%] md:transform md:-translate-y-1/2 top-10 left-5"
             >
-              <div className="text-gray-200">{`[ BROWSE ]`}</div>
+              <div className="text-gray-200 text-lg">{`[ BROWSE ]`}</div>
 
               <Select
-                value={selectedGenre}
-                onValueChange={setSelectedGenre}
-                // defaultValue="Genre"
+                value={selectedLanguage}
+                onValueChange={setSelectedLanguage}
               >
-                <SelectTrigger className="text-gray-200 border-none focus:ring-0 w-28">
-                  <SelectValue placeholder="Genre" />
+                <SelectTrigger className="text-gray-400 text-md border-none focus:ring-0 w-32">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent className="overflow-scroll">
+                  <SelectGroup>
+                    <SelectLabel>Language</SelectLabel>
+                    <SelectItem value="german">Deutsch</SelectItem>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="spanish">Español</SelectItem>
+                    <SelectItem value="french">Français</SelectItem>
+                    <SelectItem value="italian">Italiano</SelectItem>
+                    <SelectItem value="portugese">Português</SelectItem>
+                    <SelectItem value="russian">Pусский</SelectItem>
+                    <SelectItem value="albanian">Shqip</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+                <SelectTrigger className="text-gray-400 text-md border-none focus:ring-0 w-32">
+                  <SelectValue placeholder="Genre"></SelectValue>
                 </SelectTrigger>
                 <SelectContent className="overflow-scroll">
                   <SelectGroup>
                     <SelectLabel>Genres</SelectLabel>
-                    <SelectItem value="house">House</SelectItem>
-                    <SelectItem value="hip hop">Hip Hop</SelectItem>
                     <SelectItem value="dance">Dance</SelectItem>
-                    <SelectItem value="rock">Rock</SelectItem>
+                    <SelectItem value="hip hop">Hip Hop</SelectItem>
+                    <SelectItem value="hits">Hits</SelectItem>
+                    <SelectItem value="house">House</SelectItem>
+                    <SelectItem value="lofi">LoFi</SelectItem>
                     <SelectItem value="pop">Pop</SelectItem>
+                    <SelectItem value="rock">Rock</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
 
               {stations.length !== 0 && (
                 <Select
-                  value={currentStation?.urlResolved || ""}
+                  value={currentStation?.urlResolved}
                   onValueChange={(e) =>
                     selectStation(
                       stations.find((station) => station.urlResolved === e)!
                     )
                   }
                 >
-                  <SelectTrigger className="mb-4 my-3 text-gray-200 w-32 line-clamp-1 whitespace-nowrap">
-                    <SelectValue placeholder="Station" />
+                  <SelectTrigger className="mb-4 my-3 text-gray-400 text-md w-32 line-clamp-1 whitespace-nowrap border-none focus:ring-0">
+                    <SelectValue placeholder="Stations" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Available Stations</SelectLabel>
                       {stations.map((station, i) => (
                         <SelectItem
-                          key={station.urlResolved}
+                          key={station.id}
                           value={station.urlResolved}
                         >
                           {/* {`Station #${i + 1}`} */}
@@ -174,11 +193,11 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, type: "tween" }}
-                className="absolute md:top-1/2 md:right-[15%] md:transform md:-translate-y-1/2 md:mr-10 top-5 right-5"
+                className="absolute md:top-1/2 md:right-[10%] xl:right-[20%] md:transform md:-translate-y-1/2 top-10 right-5"
               >
                 <div className="flex flex-col gap-3 text-gray-400 text-md overflow-x-hidden">
                   <div className="text-gray-200">{`[ NOW PLAYING ]`}</div>
-                  <div className="relative flex gap-2 items-center justify-between mb-2 w-36">
+                  <div className="relative flex items-center justify-between w-36">
                     <div className="whitespace-nowrap animate-marquee">
                       {currentStation.name}
                     </div>
@@ -191,7 +210,7 @@ export default function Home() {
                         countryCode={currentStation.countryCode}
                         svg
                         aria-label={currentStation.country}
-                        title={currentStation.countryCode}
+                        title={currentStation.country}
                       />
                     </span>
                   </div>
