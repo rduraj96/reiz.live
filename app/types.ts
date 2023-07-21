@@ -1,4 +1,5 @@
 export type RadioStation = {
+  id: string;
   bitrate: number;
   country: string;
   countryCode: string;
