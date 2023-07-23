@@ -259,7 +259,7 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       const positions = geometry.getAttribute(
         "position"
       ) as THREE.BufferAttribute;
-      const amp = 7;
+      const amp = 5;
       const time = window.performance.now();
       const positionAttribute = geometry.getAttribute("position");
       const vertex = new THREE.Vector3();
@@ -324,7 +324,7 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       <div ref={canvasRef} />
       <AnimatePresence>
         {stationURL && (
-          <div className="absolute z-10 left-1/2 bottom-0 mb-10 flex justify-between items-center gap-10 -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute z-10 left-1/2 bottom-[10%] sm:bottom-0 sm:mb-10 flex justify-between items-center gap-10 -translate-x-1/2 -translate-y-1/2">
             <h3 className="text-white font-bold">PREV</h3>
             <button
               onClick={() => {
