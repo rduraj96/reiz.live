@@ -128,6 +128,7 @@ export default function Home() {
                 <SelectContent className="overflow-scroll">
                   <SelectGroup>
                     <SelectLabel>Language</SelectLabel>
+                    <SelectItem value="any">Any</SelectItem>
                     <SelectItem value="german">Deutsch</SelectItem>
                     <SelectItem value="english">English</SelectItem>
                     <SelectItem value="spanish">Español</SelectItem>
@@ -147,6 +148,7 @@ export default function Home() {
                 <SelectContent className="overflow-scroll">
                   <SelectGroup>
                     <SelectLabel>Genres</SelectLabel>
+                    <SelectItem value="any">Any</SelectItem>
                     <SelectItem value="dance">Dance</SelectItem>
                     <SelectItem value="hip hop">Hip Hop</SelectItem>
                     <SelectItem value="hits">Hits</SelectItem>
@@ -202,18 +204,22 @@ export default function Home() {
                       {currentStation.name}
                     </div>
                   </div>
-                  <div>{`Bitrate ${currentStation.bitrate} kbps`}</div>
-                  <div className="flex gap-3">
-                    {`Country`}
+                  <div className="flex gap-3 items-center">
                     <span>
                       <ReactCountryFlag
                         countryCode={currentStation.countryCode}
                         svg
                         aria-label={currentStation.country}
-                        title={currentStation.country}
+                        title={currentStation.countryCode}
                       />
                     </span>
+                    <span className="whitespace-nowrap line-clamp-1 w-32">
+                      {currentStation.country.length > 16
+                        ? currentStation.countryCode
+                        : currentStation.country}
+                    </span>
                   </div>
+                  <div>{`${currentStation.bitrate} kbps / ${currentStation.codec}`}</div>
                   <a href={currentStation.homepage} target="_blank">
                     Go to website
                   </a>
