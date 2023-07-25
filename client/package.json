@@ -38,6 +38,7 @@
     "react-typewriter-effect": "^1.1.0",
     "react-typing-effect": "^2.0.5",
     "simplex-noise": "^4.0.1",
+    "socket.io-client": "^4.7.1",
     "standardized-audio-context": "^25.3.53",
     "tailwind-merge": "^1.13.2",
     "tailwindcss": "3.3.2",
