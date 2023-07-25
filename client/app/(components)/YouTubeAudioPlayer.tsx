@@ -70,7 +70,7 @@ const YouTubeAudioPlayer: React.FC = () => {
   }, [playlist, currentTrackIndex]);
 
   useEffect(() => {
-    socket.current = io("http://localhost:3001");
+    socket.current = io(process.env.NEXT_PUBLIC_BACKEND_URL!);
 
     socket.current.on("connected-users", (users: string[]) => {
       setConnectedUsers(users);
