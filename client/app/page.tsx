@@ -9,21 +9,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import AudioVizualizerBlob from "./(components)/AudioVizualizerBlob";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { RandomReveal } from "react-random-reveal"; // import Typed from "react-typed";
 import { RadioStation } from "./types";
-import DarkSide from "./(components)/DarkSide";
 import { SelectGroup } from "@radix-ui/react-select";
 import ReactCountryFlag from "react-country-flag";
+import { genres } from "@/lib/genres";
 
-interface StationQueryParams {
-  limit: number;
-  order: "random";
-  region?: string;
-  tag?: string;
-  language?: string;
-}
 export default function Home() {
   const [stations, setStations] = useState<RadioStation[]>([]);
   const [currentStation, setCurrentStation] = useState<RadioStation>(
@@ -31,13 +40,14 @@ export default function Home() {
   );
   const [selectedGenre, setSelectedGenre] = useState<string>();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("english");
-  const [showEgg, setShowEgg] = useState<boolean>(false);
+  const [open, setOpen] = React.useState(false);
+  const [value, setValue] = React.useState("");
 
   useEffect(() => {
     const fetchStations = async () => {
       try {
         const response = await fetch(
-          `/api/stations?limit=30&language=${selectedLanguage}&tag=${selectedGenre}`
+          `/api/stations?language=${selectedLanguage}&tag=${selectedGenre}`
         );
 
         if (!response.ok) {
@@ -69,7 +79,7 @@ export default function Home() {
         animate={{ opacity: 1 }}
         transition={{ duration: 1, type: "keyframes" }}
       >
-        <AudioVizualizerBlob stationURL={currentStation?.urlResolved || null} />
+        <AudioVizualizerBlob stationURL={currentStation?.url || null} />
         {/* <AsciiEffectScene /> */}
       </motion.div>
 
@@ -77,7 +87,6 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, type: "tween" }}
-        onClick={() => setShowEgg((prev) => !prev)}
         className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 mt-20"
       >
         <h1
@@ -103,13 +112,13 @@ export default function Home() {
         <div className="text-gray-200 text-lg">{`[ BROWSE ]`}</div>
 
         <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-          <SelectTrigger className="text-gray-400 text-md border-none focus:ring-0 w-32">
+          <SelectTrigger className="text-gray-400 text-md border-none focus:ring-0 w-32 hover:text-white">
             <SelectValue placeholder="Language" />
           </SelectTrigger>
           <SelectContent className="overflow-scroll">
             <SelectGroup>
               <SelectLabel>Language</SelectLabel>
-              <SelectItem value="any">Any</SelectItem>
+              {/* <SelectItem value="music">Any</SelectItem> */}
               <SelectItem value="german">Deutsch</SelectItem>
               <SelectItem value="english">English</SelectItem>
               <SelectItem value="spanish">Español</SelectItem>
@@ -122,46 +131,80 @@ export default function Home() {
           </SelectContent>
         </Select>
 
-        <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-          <SelectTrigger className="text-gray-400 text-md border-none focus:ring-0 w-32">
-            <SelectValue placeholder="Genre"></SelectValue>
-          </SelectTrigger>
-          <SelectContent className="overflow-scroll">
-            <SelectGroup>
-              <SelectLabel>Genres</SelectLabel>
-              <SelectItem value="any">Any</SelectItem>
-              <SelectItem value="dance">Dance</SelectItem>
-              <SelectItem value="hip hop">Hip Hop</SelectItem>
-              <SelectItem value="hits">Hits</SelectItem>
-              <SelectItem value="house">House</SelectItem>
-              <SelectItem value="lofi">LoFi</SelectItem>
-              <SelectItem value="pop">Pop</SelectItem>
-              <SelectItem value="rock">Rock</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              role="combobox"
+              aria-expanded={open}
+              className="w-32 justify-between focus:ring-0 text-gray-400 text-md px-3 hover:bg-transparent hover:text-white"
+            >
+              {selectedGenre
+                ? genres.find((genre) => genre.value === selectedGenre)?.label
+                : "Genre..."}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-32 p-0">
+            <Command>
+              <CommandInput placeholder="Search..." />
+              <CommandEmpty>Genre not found.</CommandEmpty>
+              <CommandList>
+                {genres.map((genre) => (
+                  <CommandItem
+                    key={genre.value}
+                    onSelect={(currentValue) => {
+                      setSelectedGenre(
+                        currentValue === value ? "" : currentValue
+                      );
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedGenre === genre.value
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {genre.label}
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         {stations.length !== 0 && (
           <Select
-            value={currentStation?.urlResolved}
+            value={currentStation?.url}
             onValueChange={(e) =>
-              selectStation(
-                stations.find((station) => station.urlResolved === e)!
-              )
+              selectStation(stations.find((station) => station.url === e)!)
             }
           >
-            <SelectTrigger className="mb-4 my-3 text-gray-400 text-md w-32 line-clamp-1 whitespace-nowrap border-none focus:ring-0">
-              <SelectValue placeholder="Stations" />
+            <SelectTrigger className="mb-4 my-3 text-gray-400 text-md w-32 line-clamp-1 whitespace-nowrap border-none focus:ring-0 hover:text-white">
+              <SelectValue>Stations</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Available Stations</SelectLabel>
-                {stations.map((station, i) => (
-                  <SelectItem key={station.id} value={station.urlResolved}>
-                    {/* {`Station #${i + 1}`} */}
-                    {station.name}
-                  </SelectItem>
-                ))}
+                {stations &&
+                  stations.map((station, i) => (
+                    <SelectItem key={i} value={station.url}>
+                      <div key={i} className="flex gap-2">
+                        <span>
+                          <ReactCountryFlag
+                            countryCode={station.countryCode}
+                            svg
+                            aria-label={station.country}
+                            title={station.countryCode}
+                          />
+                        </span>
+                        {station.name}
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectGroup>
             </SelectContent>
           </Select>
