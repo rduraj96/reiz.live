@@ -6,5 +6,6 @@ export type RadioStation = {
   countryCode: string;
   name: string;
   homepage: string;
+  url: string;
   urlResolved: string;
 };
