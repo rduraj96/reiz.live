@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
       playlistInfo.items.map(async (item) => {
         try {
           const info = await ytdl.getInfo(item.id);
+          // console.log(info);
           const audioFormats = ytdl.filterFormats(info.formats, "audioonly");
+          console.log(audioFormats);
           return {
             title: item.title,
             url: audioFormats[0].url,
