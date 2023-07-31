@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     const response = await api.searchStations(
       {
-        limit: Number(params.get("limit")) || 30,
+        limit: 50,
         language: params.get("language") || "english",
-        tag: params.get("tag") || "house",
+        tag: params.get("tag") || "fm",
         order: "clickCount",
       },
       {},
