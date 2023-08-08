@@ -224,7 +224,6 @@ const YouTubeAudioPlayer: React.FC = () => {
           </h3>
         </div>
         <audio
-          crossOrigin="anonymous"
           autoPlay={false}
           ref={audioRef}
           src={playlist[currentTrackIndex].url}
