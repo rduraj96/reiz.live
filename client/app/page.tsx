@@ -142,7 +142,7 @@ export default function Home() {
               {selectedGenre
                 ? genres.find((genre) => genre.value === selectedGenre)?.label
                 : "Genre..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <ChevronsUpDown className="ml-2 h-4 w-3 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-32 p-0">
