@@ -136,12 +136,12 @@ export default function Home() {
         transition={{ duration: 1, type: "" }}
         className="flex flex-col space-y-3 w-fit absolute md:top-1/2 md:left-[10%] xl:left-[20%] md:transform md:-translate-y-1/2 top-10 left-5"
       >
-        <Tabs defaultValue="browse" className="w-[400px]">
+        <Tabs defaultValue="browse">
           <TabsList className="mb-2">
             <TabsTrigger value="browse">Browse</TabsTrigger>
             <TabsTrigger value="saved">Saved</TabsTrigger>
           </TabsList>
-          <TabsContent value="browse">
+          <TabsContent value="browse" className="h-32">
             <Select
               value={selectedLanguage}
               onValueChange={setSelectedLanguage}
@@ -245,7 +245,7 @@ export default function Home() {
             )}
           </TabsContent>
           <TabsContent value="saved">
-            <ScrollArea className="h-44 w-40 pl-3">
+            <ScrollArea className="h-32 w-40 pl-3">
               {savedStations ? (
                 savedStations.map((station, i) => (
                   <div
