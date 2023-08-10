@@ -27,12 +27,25 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
-  const initAudio = () => {
+  const handleMediaControl = () => {
     if (isPlaying) {
       audioElementRef.current?.pause();
       setPlaying(false);
     } else {
       if (!stationURL) return;
+      audioElementRef.current?.play().catch((error) => {
+        console.error("Failed to play audio:", error);
+      });
+      setPlaying(true);
+    }
+  };
+
+  useEffect(() => {
+    if (stationURL) {
+      if (!audioElementRef.current?.paused) {
+        audioElementRef.current?.pause();
+        setPlaying(false);
+      }
       audioElementRef.current = new Audio(stationURL);
       audioElementRef.current.preload = "auto";
       audioElementRef.current.crossOrigin = "anonymous";
@@ -47,12 +60,12 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
       audioSource.connect(analyserRef.current);
       analyserRef.current.connect(audioContext.destination);
 
-      audioElementRef.current.play().catch((error) => {
+      audioElementRef.current?.play().catch((error) => {
         console.error("Failed to play audio:", error);
       });
       setPlaying(true);
     }
-  };
+  }, [stationURL]);
 
   useEffect(() => {
     let camera: THREE.PerspectiveCamera;
@@ -328,7 +341,7 @@ const AudioVizualizerBlob: React.FC<AudioVizualizerBlobProps> = ({
             <h3 className="text-white font-bold">PREV</h3>
             <button
               onClick={() => {
-                initAudio();
+                handleMediaControl();
               }}
               className="hover:cursor-pointer text-white"
             >
