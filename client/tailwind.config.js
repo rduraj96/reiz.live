@@ -16,6 +16,9 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        "neue": [ 'var(--font-neue)' ]
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -79,6 +82,7 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
         marquee: 'marquee 25s linear infinite',
         marquee2: 'marquee2 25s linear infinite',
+        'spin-slow': 'spin 3s linear infinite',
       },
     },
   },

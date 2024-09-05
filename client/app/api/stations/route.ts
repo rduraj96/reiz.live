@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
         limit: 50,
         language: params.get("language") || "english",
         tag: params.get("tag") || "fm",
-        order: "clickCount",
+        order: "votes",
+        hideBroken: true,
+        removeDuplicates: true,
       },
       {},
       true

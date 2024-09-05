@@ -1,11 +1,14 @@
 export type RadioStation = {
-  id: string;
-  bitrate: number;
-  codec: string;
-  country: string;
-  countryCode: string;
+  id?: string;
   name: string;
-  homepage: string;
   url: string;
   urlResolved: string;
+  favicon?: string;
+  country: string;
+  countryCode: string;
+  language: string;
+  tags: string[];
+  bitrate: number;
+  codec: string;
+  homepage: string;
 };

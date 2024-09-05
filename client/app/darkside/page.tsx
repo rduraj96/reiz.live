@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import React from "react";
-import DarkSide from "../(components)/DarkSide";
+import DarkSide from "../../components/DarkSide";
 
 type Props = {};
 

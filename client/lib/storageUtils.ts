@@ -11,7 +11,7 @@ export const saveToLocalStorage = (newStations: RadioStation[]) => {
 export const removeFromLocalStorage = (stationUrl: string) => {
   const storedData = loadFromLocalStorage();
   const updatedData = storedData.filter(
-    (station) => station.url !== stationUrl
+    (station) => station.urlResolved !== stationUrl
   );
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
 };
