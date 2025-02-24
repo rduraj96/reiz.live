@@ -8,6 +8,10 @@
 
 [https://www.reiz.live/](https://www.reiz.live/)
 
+<h2>Project Screenshots:</h2>
+
+<img src="https://raw.githubusercontent.com/rduraj96/reiz.live/refs/heads/main/client/public/Screen%20Shot%202025-02-24%20at%202.21.59%20PM.png" alt="project-screenshot" width="1000" height="500/">
+
   
   
 <h2>🧐 Features</h2>
