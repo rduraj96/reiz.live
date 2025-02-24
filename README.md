@@ -1,6 +1,6 @@
 <h1 align="center" id="title">REIZDIO</h1>
 
-<p align="center"><img src="https://socialify.git.ci/rduraj96/reiz.live/image?language=1&amp;name=1&amp;owner=1&amp;theme=Light" alt="project-image"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/rduraj96/reiz.live/refs/heads/main/client/public/reizdio_blob.gif" alt="project-image"></p>
 
 <p id="description">A live web radio featuring a 3D audio visualizer.</p>
 
