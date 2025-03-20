@@ -41,9 +41,9 @@ const StationListModal: React.FC<StationListModalProps> = ({ onClose }) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className={`p-4 rounded-lg cursor-pointer border border-transparent transition-all flex items-center justify-between group text-foreground ${
+          className={`p-4 rounded-lg cursor-pointer border border-transparent text-background transition-all flex items-center justify-between group ${
             station.urlResolved === currentStation?.urlResolved
-              ? "bg-foreground text-black border border-red"
+              ? "bg-foreground border border-red"
               : "text-foreground hover:border hover:border-foreground"
           }`}
           onClick={() => {
