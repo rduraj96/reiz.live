@@ -33,6 +33,8 @@ async function setup(page: Page) {
   await page.goto("/");
   // The intro primes the first station, which enables share/heart: tab walks must wait for that.
   await expect(page.getByRole("button", { name: "Share station" })).toBeEnabled();
+  // The intro fades out over the page; axe would measure its half-transparent text.
+  await expect(page.getByTestId("intro")).toHaveCount(0, { timeout: 9000 });
   // Wait for the entrance animations to settle so axe sees final colours/opacity.
   await page.waitForFunction(() => {
     const animated = document.querySelectorAll('header, main > div[style*="opacity"], .pointer-events-auto[style*="opacity"]');

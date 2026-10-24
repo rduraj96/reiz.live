@@ -4,7 +4,16 @@ export default defineConfig({
   testDir: "./tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",
   // Reduced motion by default so glides and letter rises settle instantly; intro.spec.ts opts back in.
-  use: { baseURL: "http://localhost:3100", reducedMotion: "reduce" },
+  use: {
+    baseURL: "http://localhost:3100",
+    reducedMotion: "reduce",
+    // Start on the light 2D visualizer: CI has no GPU, so the 3D blob renders in software and starves the page.
+    // Tests about the 3D default clear this.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: "http://localhost:3100", localStorage: [{ name: "reizdio:viz", value: "2d" }] }],
+    },
+  },
   projects: [
     {
       name: "chromium",
