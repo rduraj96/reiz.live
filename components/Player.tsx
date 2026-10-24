@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AboutPanel } from "@/components/AboutPanel";
 import { BigName } from "@/components/BigName";
+import { Intro } from "@/components/Intro";
 import { Header } from "@/components/Header";
 import { LoginDialog } from "@/components/LoginDialog";
 import { Readout } from "@/components/Readout";
@@ -73,6 +74,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
       <Toast />
+      <Intro />
     </div>
   );
 }
