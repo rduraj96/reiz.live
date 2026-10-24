@@ -62,7 +62,6 @@ export function Intro() {
     if (introDone) return;
     const layer = layerRef.current;
     if (!layer) return;
-    introDone = true; // an unmount mid-intro must not replay it
     const reduced = prefersReducedMotion();
     const main = document.querySelector("main");
     let raf = 0;
@@ -71,6 +70,7 @@ export function Intro() {
     const animations: Animation[] = [];
 
     const finish = () => {
+      introDone = true;
       setShown(false);
     };
 
@@ -112,6 +112,8 @@ export function Intro() {
     };
 
     const reveal = () => {
+      // Marked once the exit begins (not at effect start: StrictMode's dev double-run would otherwise skip run 2).
+      introDone = true;
       if (capRef.current) capRef.current.textContent = "MHz · signal locked";
       timer = setTimeout(() => {
         if (cancelled) return;
