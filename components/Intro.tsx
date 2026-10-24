@@ -68,6 +68,7 @@ export function Intro() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     const animations: Animation[] = [];
+    let unsubBand = () => {};
 
     const finish = () => {
       introDone = true;
@@ -75,30 +76,32 @@ export function Intro() {
     };
 
     // Autoplay is blocked: prime the first station rather than selecting it. A shared station is already current.
+    // The band may still be loading (cold start, or the directory is down until Retry): then prime as soon as one is
+    // ready, from wherever the dial is (no glide-in from the left).
     const primeFirst = (fromOffset?: number) => {
-      if (usePlayer.getState().current) return;
       const id = firstStationId();
-      if (id) glideWhenReady(id, fromOffset);
+      if (id) {
+        if (!usePlayer.getState().current) glideWhenReady(id, fromOffset);
+        return;
+      }
+      unsubBand();
+      unsubBand = useDial.subscribe(() => {
+        const late = firstStationId();
+        // Not while the user is turning the dial: a later dial change (needle, bands) retries.
+        if (!late || usePlayer.getState().tuning) return;
+        unsubBand();
+        if (!usePlayer.getState().current) glideWhenReady(late, undefined);
+      });
     };
 
     if (reduced) {
       const fade = layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, fill: "forwards" });
       animations.push(fade);
       fade.finished.then(() => !cancelled && finish()).catch(() => {});
-      // The band may still be loading: prime as soon as it is ready (or never, when the directory is down).
-      const unsub = useDial.subscribe((s) => {
-        if (s.firstBandReady) {
-          unsub();
-          primeFirst();
-        }
-      });
-      if (useDial.getState().firstBandReady) {
-        unsub();
-        primeFirst();
-      }
+      primeFirst();
       return () => {
         cancelled = true;
-        unsub();
+        unsubBand();
         animations.forEach((a) => a.cancel());
       };
     }
@@ -159,6 +162,7 @@ export function Intro() {
 
     return () => {
       cancelled = true;
+      unsubBand();
       cancelAnimationFrame(raf);
       clearTimeout(timer);
       animations.forEach((a) => a.cancel());

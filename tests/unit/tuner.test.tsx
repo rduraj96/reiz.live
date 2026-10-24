@@ -249,6 +249,35 @@ describe("Tuner", () => {
     expect(usePlayer.getState().primed).toBe(true);
   });
 
+  it("glideTo's fromOffset is relative to the target station", () => {
+    render(<Tuner />);
+    act(() => tunerApi.glideTo("t1", { fromOffset: -700, prime: true }));
+    // t1 sits at 1848 (house 12 slots + gap + dance 12 slots + gap): the glide starts 700 px left of it, not at x = -700.
+    const track = document.querySelector<HTMLElement>("[data-station-id]")!.parentElement!;
+    const x = -parseFloat(track.style.transform.replace("translateX(", ""));
+    expect(x).toBeGreaterThanOrEqual(1848 - 700);
+    expect(x).toBeLessThan(1848);
+  });
+
+  it("tuneNearest with nothing current tunes to the station under the needle and plays it", () => {
+    render(<Tuner />);
+    act(() => tunerApi.tuneNearest());
+    settle();
+    expect(spies.setList).toHaveBeenCalledTimes(1);
+    expect(spies.select).toHaveBeenCalledWith(house[0]);
+    expect(usePlayer.getState().primed).toBe(false);
+    expect(usePlayer.getState().tuning).toBe(false);
+  });
+
+  it("tuneNearest with no loaded stations does nothing", () => {
+    useDial.setState({ bands: [band("house", "House", [], "loading")] });
+    render(<Tuner />);
+    act(() => tunerApi.tuneNearest());
+    settle();
+    expect(spies.select).not.toHaveBeenCalled();
+    expect(spies.setTuning).not.toHaveBeenCalled();
+  });
+
   it("shuffle glides to a random loaded station and selects it", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     render(<Tuner />);

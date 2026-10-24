@@ -9,7 +9,7 @@ import { LoginDialog } from "@/components/LoginDialog";
 import { Readout } from "@/components/Readout";
 import { StationPanel } from "@/components/StationPanel";
 import { Toast } from "@/components/Toast";
-import { Tuner } from "@/components/Tuner";
+import { Tuner, tunerApi } from "@/components/Tuner";
 import { Visualizer } from "@/components/Visualizer";
 import { useDialBands } from "@/hooks/useDialBands";
 import { togglePlay, useEngineBridge } from "@/hooks/useEngineBridge";
@@ -28,7 +28,11 @@ function BlobButton() {
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
-        onClick={togglePlay}
+        onClick={() => {
+          // Nothing tuned yet (the first band loaded late, or after Retry): tune to the station under the needle.
+          if (usePlayer.getState().current) togglePlay();
+          else tunerApi.tuneNearest();
+        }}
         className="relative z-[2] grid aspect-square w-[min(70vw,360px)] max-w-full cursor-pointer place-items-center rounded-full [grid-area:1/1] focus-visible:outline-offset-[-6px]"
       >
         <Visualizer />

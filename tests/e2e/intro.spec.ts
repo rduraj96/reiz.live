@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+
+const tone = readFileSync(path.resolve("tests/e2e/fixtures/tone.wav"));
 
 const stations = (url: string) => {
   const genre = new URL(url).searchParams.get("genre") ?? "house";
@@ -57,6 +61,25 @@ test.describe("full motion", () => {
     await mockStations(page, 502);
     await page.goto("/");
     await expect(intro(page)).toHaveCount(0, { timeout: 9000 });
+  });
+
+  test("directory down at first load: after Retry the blob plays", async ({ page }) => {
+    let failing = true;
+    await page.route("**/__test/tone.wav", (r) => r.fulfill({ status: 200, contentType: "audio/wav", body: tone }));
+    await page.route("**/api/stations*", (route) =>
+      failing
+        ? route.fulfill({ status: 502, json: { error: "down" } })
+        : route.fulfill({ json: stations(route.request().url()) }),
+    );
+    await page.goto("/");
+    await expect(intro(page)).toHaveCount(0, { timeout: 9000 });
+
+    failing = false;
+    await page.locator("main").getByRole("button", { name: "Retry" }).click();
+    await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute("aria-valuetext", /house One/);
+
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
   });
 });
 

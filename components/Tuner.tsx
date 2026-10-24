@@ -19,10 +19,12 @@ import { usePlayer } from "@/store/player";
 import styles from "./Tuner.module.css";
 
 type OffDial = { station: Station; label: string };
+/** fromOffset: start the glide this many px from the target (negative = left of it). */
 type GlideOpts = { fromOffset?: number; prime?: boolean };
 type Handle = {
   glideTo: (id: string, opts?: GlideOpts) => void;
   shuffle: () => void;
+  tuneNearest: () => void;
   frequencyOf: (id: string) => string | null;
 };
 
@@ -43,6 +45,10 @@ export const tunerApi = {
   },
   shuffle() {
     handle?.shuffle();
+  },
+  /** Tune to (and play) the loaded station nearest the needle; a no-op with none loaded. */
+  tuneNearest() {
+    handle?.tuneNearest();
   },
   /** Dial frequency of a station, or null when it isn't on the dial (or no Tuner is mounted). */
   frequencyOf(stationId: string): string | null {
@@ -359,9 +365,10 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
 
     const glideTo = (id: string, opts?: GlideOpts) => {
       if (!s().byId.has(id)) return;
-      if (opts?.fromOffset !== undefined) {
+      const target = positionOf(s().layout, id);
+      if (opts?.fromOffset !== undefined && target !== null) {
         stopGlide();
-        s().offset = opts.fromOffset;
+        s().offset = target + opts.fromOffset;
         paint();
       }
       tuneTo(id, opts?.prime ?? false);
@@ -373,6 +380,11 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       const playing = usePlayer.getState().current?.id;
       const pool = order.length > 1 ? order.filter((id) => id !== playing) : order;
       tuneTo(pool[Math.floor(Math.random() * pool.length)]);
+    };
+
+    const tuneNearest = () => {
+      const n = nearestStation(s().layout, s().offset);
+      if (n) tuneTo(n.stationId);
     };
 
     /** The current station changed outside the dial (panel pick, markFailed, share prime): glide there, no select. */
@@ -404,6 +416,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       onPointerUp,
       glideTo,
       shuffle,
+      tuneNearest,
       follow,
       dispose,
     };
@@ -470,6 +483,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     handle = {
       glideTo: engine.glideTo,
       shuffle: engine.shuffle,
+      tuneNearest: engine.tuneNearest,
       frequencyOf: (id) => frequencyOf(r.current.layout, id),
     };
     const mine = handle;
