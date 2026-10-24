@@ -81,6 +81,26 @@ describe("useDialBands", () => {
     expect(maxConcurrent).toBeLessThanOrEqual(3);
   });
 
+  it("only requests bands the needle settles on, not ones it passes through", async () => {
+    vi.useFakeTimers();
+    try {
+      renderHook(() => useDialBands());
+      for (let k = 0; k <= 10; k++) {
+        act(() => useDial.getState().setNeedleGenre(g(k)));
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(20);
+        });
+      }
+      expect(requested).toEqual([]);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      expect([...requested].sort()).toEqual([g(9), g(10), g(11)].sort());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps the first 12 stations and marks the band ready", async () => {
     useDial.setState({ needleGenre: g(0) });
     renderHook(() => useDialBands());
@@ -100,6 +120,7 @@ describe("useDialBands", () => {
     expect(band(g(4)).state).toBe("empty");
     expect(requested.filter((x) => x === g(5))).toHaveLength(1);
     act(() => useDial.getState().setNeedleGenre(g(9)));
+    await waitFor(() => expect(requested).toContain(g(9)));
     act(() => useDial.getState().setNeedleGenre(g(5)));
     await waitFor(() => expect(requested.filter((x) => x === g(5))).toHaveLength(2));
   });

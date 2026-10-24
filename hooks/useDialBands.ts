@@ -7,8 +7,13 @@ import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 
 const MAX_IN_FLIGHT = 3;
+/** The needle must rest this long on a band before new requests start. */
+const SETTLE_MS = 140;
 
-/** Lazily loads the needle's band and its two neighbours, at most 3 requests at a time. */
+/**
+ * Lazily loads the needle's band and its two neighbours, at most 3 requests at a time.
+ * Mount once: the in-flight map is per instance.
+ */
 export function useDialBands() {
   const needleGenre = useDial((s) => s.needleGenre);
   const bands = useDial((s) => s.bands);
@@ -16,6 +21,8 @@ export function useDialBands() {
   // genre|language -> controller, for requests in flight.
   const inFlight = useRef(new Map<string, AbortController>());
   const lastNeedle = useRef<string | null>(null);
+  // The needle value that has rested for SETTLE_MS; re-runs for other reasons start immediately.
+  const settledNeedle = useRef<string | null>(null);
 
   useEffect(() => {
     const dial = useDial.getState();
@@ -28,36 +35,55 @@ export function useDialBands() {
       return; // the reset changes `bands`, which re-runs this effect
     }
 
-    const entered = needleGenre !== lastNeedle.current;
-    lastNeedle.current = needleGenre;
-    if (needleGenre === null) return;
-    const i = dial.bands.findIndex((b) => b.genre === needleGenre);
-    if (i < 0) return;
+    const start = () => {
+      const entered = needleGenre !== lastNeedle.current;
+      lastNeedle.current = needleGenre;
+      if (needleGenre === null) return;
+      const i = dial.bands.findIndex((b) => b.genre === needleGenre);
+      if (i < 0) return;
 
-    if (entered && dial.bands[i].state === "error") {
-      dial.patchBand(needleGenre, { state: "idle" }); // re-runs via `bands`
+      if (entered && dial.bands[i].state === "error") {
+        dial.patchBand(needleGenre, { state: "idle" }); // re-runs via `bands`
+        return;
+      }
+
+      const language = dial.language;
+      // Needle band first, then its neighbours; anything outside this window is simply not queued.
+      const window = [i, i - 1, i + 1].filter(
+        (k) => k >= 0 && k < dial.bands.length,
+      );
+      for (const k of window) {
+        if (inFlight.current.size >= MAX_IN_FLIGHT) break;
+        const band = dial.bands[k];
+        const key = `${band.genre}|${language}`;
+        if (band.state !== "idle" || inFlight.current.has(key)) continue;
+
+        const controller = new AbortController();
+        inFlight.current.set(key, controller);
+        useDial.getState().patchBand(band.genre, { state: "loading" });
+        void load(band.genre, language, controller.signal).then((result) => {
+          if (inFlight.current.get(key) === controller)
+            inFlight.current.delete(key);
+          // Stale: the language changed while this was in flight (or we were aborted).
+          if (
+            controller.signal.aborted ||
+            useDial.getState().language !== language
+          )
+            return;
+          useDial.getState().patchBand(band.genre, result);
+        });
+      }
+    };
+
+    if (needleGenre === settledNeedle.current) {
+      start();
       return;
     }
-
-    const language = dial.language;
-    // Needle band first, then its neighbours; anything outside this window is simply not queued.
-    const window = [i, i - 1, i + 1].filter((k) => k >= 0 && k < dial.bands.length);
-    for (const k of window) {
-      if (inFlight.current.size >= MAX_IN_FLIGHT) break;
-      const band = dial.bands[k];
-      const key = `${band.genre}|${language}`;
-      if (band.state !== "idle" || inFlight.current.has(key)) continue;
-
-      const controller = new AbortController();
-      inFlight.current.set(key, controller);
-      useDial.getState().patchBand(band.genre, { state: "loading" });
-      void load(band.genre, language, controller.signal).then((result) => {
-        if (inFlight.current.get(key) === controller) inFlight.current.delete(key);
-        // Stale: the language changed while this was in flight (or we were aborted).
-        if (controller.signal.aborted || useDial.getState().language !== language) return;
-        useDial.getState().patchBand(band.genre, result);
-      });
-    }
+    const timer = setTimeout(() => {
+      settledNeedle.current = needleGenre;
+      start();
+    }, SETTLE_MS);
+    return () => clearTimeout(timer);
   }, [needleGenre, bands, playerLanguage]);
 
   useEffect(() => {
@@ -73,19 +99,26 @@ export function useDialBands() {
       }
       flights.clear();
       lastNeedle.current = null;
+      settledNeedle.current = null;
     };
   }, []);
 }
 
-type Result = { state: "ready" | "empty"; stations: Station[] } | { state: "error" };
+type Result =
+  { state: "ready" | "empty"; stations: Station[] } | { state: "error" };
 
-async function load(genre: string, language: string, signal: AbortSignal): Promise<Result> {
+async function load(
+  genre: string,
+  language: string,
+  signal: AbortSignal,
+): Promise<Result> {
   try {
     const params = new URLSearchParams({ genre, language });
     const res = await fetch(`/api/stations?${params}`, { signal });
     if (!res.ok) return { state: "error" };
     const list = (await res.json()) as Station[];
-    if (!Array.isArray(list) || list.length === 0) return { state: "empty", stations: [] };
+    if (!Array.isArray(list) || list.length === 0)
+      return { state: "empty", stations: [] };
     return { state: "ready", stations: list.slice(0, DIAL_SLOTS) };
   } catch {
     return { state: "error" };
