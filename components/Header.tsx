@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { SurpriseButton } from "./SurpriseButton";
 
 type HeaderProps = {
   onOpen: (tab: "recent" | "saved") => void;
@@ -22,6 +23,8 @@ export function Header({ onOpen, onAbout }: HeaderProps) {
         REIZDIO
       </h1>
       <nav className="flex flex-wrap justify-center items-center gap-2 font-medium text-lg md:text-2xl text-foreground">
+        <SurpriseButton className={`${navItem} disabled:opacity-50`} />
+        <div className="w-4 h-0.5 bg-gray-200 hidden md:block" />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

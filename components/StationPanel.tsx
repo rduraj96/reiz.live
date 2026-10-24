@@ -1,12 +1,14 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearch } from "@/hooks/useSearch";
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { useRecents } from "@/lib/library/recents";
 import type { Station } from "@/lib/radio/types";
 import { useAuth } from "@/store/auth";
 import { usePlayer, type PanelTab } from "@/store/player";
+import { SearchBar, type Country } from "./SearchBar";
 import { StationRow } from "./StationRow";
 
 const TABS: { id: PanelTab; label: string }[] = [
@@ -28,6 +30,25 @@ export function StationPanel() {
   const openLogin = useAuth((s) => s.openLogin);
   const openerRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Record<PanelTab, HTMLButtonElement | null>>({ browse: null, recent: null, saved: null });
+
+  const [q, setQ] = useState("");
+  const [country, setCountry] = useState<string | null>(null);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const countriesLoaded = useRef(false);
+  const search = useSearch(q, country);
+  const searching = q.trim().length >= 2;
+
+  // Countries are fetched once, the first time the panel opens.
+  useEffect(() => {
+    if (!open || countriesLoaded.current) return;
+    countriesLoaded.current = true;
+    fetch("/api/countries")
+      .then((res) => (res.ok ? (res.json() as Promise<Country[]>) : []))
+      .then(setCountries)
+      .catch(() => {
+        countriesLoaded.current = false;
+      });
+  }, [open]);
 
   function pick(station: Station, stations: Station[]) {
     const { setList, select } = usePlayer.getState();
@@ -63,7 +84,12 @@ export function StationPanel() {
   }
 
   function body() {
-    if (tab === "browse") return renderStations(list, "No stations loaded.");
+    if (tab === "browse") {
+      if (!searching) return renderStations(list, "No stations loaded.");
+      if (search.error) return <p className="text-muted">{search.error}</p>;
+      if (search.results === null) return <p className="text-muted">Searching…</p>;
+      return renderStations(search.results, "No stations found");
+    }
     if (tab === "recent") return renderStations(recents, "Nothing played yet");
     if (!user) {
       return (
@@ -136,6 +162,9 @@ export function StationPanel() {
             aria-labelledby={`panel-tab-${tab}`}
             className="min-h-0 flex-1 overflow-y-auto"
           >
+            {tab === "browse" && (
+              <SearchBar q={q} onQ={setQ} country={country} onCountry={setCountry} countries={countries} />
+            )}
             {body()}
           </div>
         </Dialog.Content>

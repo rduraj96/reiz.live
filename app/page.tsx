@@ -8,6 +8,7 @@ import { LoginDialog } from "@/components/LoginDialog";
 import { PlayBar } from "@/components/PlayBar";
 import ScrollSelect from "@/components/ScrollSelect";
 import { StationPanel } from "@/components/StationPanel";
+import { Toast } from "@/components/Toast";
 import { StationStatus } from "@/components/StationStatus";
 import { Visualizer } from "@/components/Visualizer";
 import { useEngineBridge } from "@/hooks/useEngineBridge";
@@ -94,6 +95,7 @@ export default function Home() {
       <StationPanel />
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
+      <Toast />
     </main>
   );
 }
