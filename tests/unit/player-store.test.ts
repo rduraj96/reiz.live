@@ -176,3 +176,19 @@ describe("player store", () => {
     expect(ids(usePlayer.getState().list)).toEqual(["x", "y"]);
   });
 });
+
+describe("prime (share link)", () => {
+  it("sets the station current in the blocked state without loading", () => {
+    usePlayer.getState().prime(st("a"));
+    expect(usePlayer.getState()).toMatchObject({ current: { id: "a" }, status: "blocked", primed: true });
+    expect(ids(usePlayer.getState().list)).toEqual(["a"]);
+  });
+
+  it("survives the genre list arriving, and select clears primed", () => {
+    usePlayer.getState().prime(st("a"));
+    usePlayer.getState().setList([st("b"), st("c")]);
+    expect(usePlayer.getState().current?.id).toBe("a");
+    usePlayer.getState().select(st("b"));
+    expect(usePlayer.getState()).toMatchObject({ status: "loading", primed: false });
+  });
+});

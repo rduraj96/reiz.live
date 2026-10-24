@@ -3,6 +3,7 @@
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
+import { ShareButton } from "./ShareButton";
 import { StationMarquee } from "./StationMarquee";
 
 const iconBtn =
@@ -40,6 +41,7 @@ export function CompactPlayBar() {
         <Svg>{playing ? <path d="M6 5h4v14H6zm8 0h4v14h-4z" /> : <path d="M8 5v14l11-7z" />}</Svg>
       </button>
       <HeartButton station={current} className={iconBtn} />
+      <ShareButton station={current} className={iconBtn} />
       <button type="button" onClick={() => openPanel("browse")} aria-label="Stations" className={iconBtn}>
         <Svg>
           <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />

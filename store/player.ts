@@ -16,12 +16,15 @@ type PlayerState = {
   muted: boolean;
   volume: number;
   failedInARow: number;
+  /** Current station came from a share link and hasn't been loaded yet (autoplay is blocked until a tap). */
+  primed: boolean;
   listError: string | null;
   panel: { open: boolean; tab: PanelTab };
 };
 
 type PlayerActions = {
   setList: (list: Station[]) => void;
+  prime: (station: Station) => void;
   select: (station: Station) => void;
   next: () => void;
   prev: () => void;
@@ -56,13 +59,16 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     muted: false,
     volume: 0.8,
     failedInARow: 0,
+    primed: false,
     listError: null,
     panel: { open: false, tab: "browse" },
 
     setList: (list) => set({ list, failedInARow: 0 }),
+    prime: (station) =>
+      set({ list: [station], current: station, status: "blocked", primed: true, failedInARow: 0 }),
     select: (station) => {
       if (get().current?.id === station.id) return; // re-selecting the active station is a no-op
-      set({ current: station, status: "loading", failedInARow: 0 });
+      set({ current: station, status: "loading", failedInARow: 0, primed: false });
     },
     next: () => step(1),
     prev: () => step(-1),
@@ -78,7 +84,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
       }
       // After removal the station that followed `station` sits at its old index.
       const following = rest[i % rest.length];
-      set({ list: rest, failedInARow: failed, current: following, status: "loading" });
+      set({ list: rest, failedInARow: failed, current: following, status: "loading", primed: false });
     },
     reportFailure: (station) => {
       const { list, current } = get();

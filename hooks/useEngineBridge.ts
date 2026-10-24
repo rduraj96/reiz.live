@@ -8,8 +8,14 @@ import { usePlayer } from "@/store/player";
 
 /** Play/pause button behaviour, driven by the store's status. */
 export function togglePlay() {
-  const { status, current } = usePlayer.getState();
+  const { status, current, primed } = usePlayer.getState();
   const engine = getAudioEngine();
+  if (primed && current) {
+    // Share-link station: nothing is loaded yet, so the first tap loads it.
+    usePlayer.setState({ primed: false, status: "loading" });
+    void engine.load(current);
+    return;
+  }
   if (status === "playing") engine.pause();
   else if (status === "paused" || status === "blocked") void engine.play();
   else if (current && status !== "loading") void engine.load(current);
@@ -35,7 +41,7 @@ export function useEngineBridge() {
     const initial = store.getState();
     engine.setVolume(initial.volume);
     engine.setMuted(initial.muted);
-    if (initial.current) void engine.load(initial.current);
+    if (initial.current && !initial.primed) void engine.load(initial.current);
 
     const offs = [
       engine.on("playing", (station) => {
@@ -52,7 +58,7 @@ export function useEngineBridge() {
       if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.muted !== prev.muted) engine.setMuted(state.muted);
-      if (state.current && state.current !== prev.current) void engine.load(state.current);
+      if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
     });
 
     return () => {

@@ -5,6 +5,7 @@ import { flagEmoji } from "@/lib/flag";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
 import { LiveClock } from "./LiveClock";
+import { ShareButton } from "./ShareButton";
 import { StationMarquee } from "./StationMarquee";
 
 const divider = <div className="h-full bg-muted w-px" />;
@@ -62,7 +63,7 @@ export function PlayBar() {
           type="button"
           onClick={togglePlay}
           disabled={!current || status === "loading"}
-          aria-label={playing ? "Pause" : "Play"}
+          aria-label={status === "blocked" ? "Tap to play" : playing ? "Pause" : "Play"}
           className={iconBtn}
         >
           <Svg>{playing ? <path d="M6 5h4v14H6zm8 0h4v14h-4z" /> : <path d="M8 5v14l11-7z" />}</Svg>
@@ -79,6 +80,10 @@ export function PlayBar() {
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">
         <HeartButton station={current} className={iconBtn} />
+      </div>
+      {divider}
+      <div className="h-full px-2 md:px-7 flex items-center justify-center">
+        <ShareButton station={current} className={iconBtn} />
       </div>
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">
