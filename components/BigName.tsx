@@ -15,6 +15,10 @@ const TICKER_PX_PER_S = 70;
 const ORBIT_R = 96;
 /** Blob width, as in Player's BlobButton (`min(70vw, 360px)`). */
 const blobWidth = () => Math.min(window.innerWidth * 0.7, 360);
+/** Room for one half of the parted name beside the opened gap (1.12 × blob). */
+const sideRoom = (stage: number) => (stage - blobWidth() * 1.12) / 2 - 16;
+/** Below this many px beside the blob, the name parts vertically instead. */
+const PART_MIN_SIDE = 100;
 
 const reducedMotion = () =>
   typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -168,22 +172,36 @@ function Ticker({ name, tuning, freq }: Props & { freq: string | null }) {
   );
 }
 
-/** The name split in two halves that part around the blob; the type is fitted so the wider half fits beside it. */
+/**
+ * The name split in two halves that part around the blob; the type is fitted so the wider half fits beside it.
+ * Where the sides are too narrow for that (phones), the halves part vertically: one above the blob, one below.
+ */
 function Part({ name, tuning }: Props) {
   const shown = useRisen(name);
   const rootRef = useRef<HTMLDivElement>(null);
   const halvesRef = useRef<(HTMLElement | null)[]>([]);
+  const [vertical, setVertical] = useState(false);
   const [left, right] = name ? splitName(name) : ["", ""];
   const risen = !!name && shown === name;
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setVertical(sideRoom(root.clientWidth) < PART_MIN_SIDE));
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, []);
 
   useFit(
     rootRef,
     halvesRef,
     (root) => {
       const stage = root.clientWidth;
-      return { start: Math.min(120, stage * 0.085), room: (stage - blobWidth() * 1.12) / 2 - 16 };
+      return vertical
+        ? { start: Math.min(120, stage * 0.13), room: stage - 32 }
+        : { start: Math.min(120, stage * 0.085), room: sideRoom(stage) };
     },
-    name,
+    `${name}|${vertical}`,
   );
 
   return (
@@ -191,7 +209,13 @@ function Part({ name, tuning }: Props) {
       ref={rootRef}
       aria-hidden="true"
       data-variant="part"
-      className={cx(styles.alt, styles.part, risen && !tuning && styles.open, tuning && styles.out)}
+      className={cx(
+        styles.alt,
+        styles.part,
+        vertical && styles.vertical,
+        risen && !tuning && styles.open,
+        tuning && styles.out,
+      )}
     >
       {name && (
         <div className={styles.row}>
