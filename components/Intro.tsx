@@ -17,7 +17,7 @@ const FADE_MS = 400;
 const SPLIT_EASE = "cubic-bezier(.76,0,.24,1)";
 const SPLIT_FROM = "polygon(0 0, 100% 0, 100% 50%, 0 50%, 0 50%, 100% 50%, 100% 100%, 0 100%)";
 const SPLIT_TO = "polygon(0 0, 100% 0, 100% 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%)";
-const GLIDE_RETRIES = 10;
+const GLIDE_RETRY_MS = 2000;
 
 /** Set once the intro has finished: later mounts (client navigation) skip it. */
 let introDone = false;
@@ -42,11 +42,11 @@ function firstStationId(): string | null {
 }
 
 /** Glide the dial onto `id`, retrying a few frames while the Tuner hasn't registered yet. */
-function glideWhenReady(id: string, fromOffset: number | undefined, tries = GLIDE_RETRIES) {
+function glideWhenReady(id: string, fromOffset: number | undefined, deadline = performance.now() + GLIDE_RETRY_MS) {
   if (tunerApi.frequencyOf(id) !== null) {
     tunerApi.glideTo(id, { fromOffset, prime: true });
-  } else if (tries > 0) {
-    requestAnimationFrame(() => glideWhenReady(id, fromOffset, tries - 1));
+  } else if (performance.now() < deadline) {
+    requestAnimationFrame(() => glideWhenReady(id, fromOffset, deadline));
   }
 }
 
@@ -62,6 +62,7 @@ export function Intro() {
     if (introDone) return;
     const layer = layerRef.current;
     if (!layer) return;
+    introDone = true; // an unmount mid-intro must not replay it
     const reduced = prefersReducedMotion();
     const main = document.querySelector("main");
     let raf = 0;
@@ -70,7 +71,6 @@ export function Intro() {
     const animations: Animation[] = [];
 
     const finish = () => {
-      introDone = true;
       setShown(false);
     };
 

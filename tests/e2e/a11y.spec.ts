@@ -30,6 +30,8 @@ async function setup(page: Page) {
     route.fulfill({ json: [{ code: "DE", name: "Germany" }] }),
   );
   await page.goto("/");
+  // The intro primes the first station, which enables share/heart: tab walks must wait for that.
+  await expect(page.getByRole("button", { name: "Share station" })).toBeEnabled();
   // Wait for the entrance animations to settle so axe sees final colours/opacity.
   await page.waitForFunction(() => {
     const animated = document.querySelectorAll('header, main > div[style*="opacity"], .pointer-events-auto[style*="opacity"]');
