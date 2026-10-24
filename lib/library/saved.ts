@@ -12,7 +12,7 @@ export async function listSaved(sb: SupabaseClient): Promise<Station[]> {
 export async function saveStation(sb: SupabaseClient, userId: string, s: Station): Promise<void> {
   const { error } = await sb
     .from(TABLE)
-    .upsert({ user_id: userId, station_id: s.id, station: s }, { onConflict: "user_id,station_id" });
+    .upsert({ user_id: userId, station_id: s.id, station: s }, { onConflict: "user_id,station_id", ignoreDuplicates: true });
   if (error) throw error;
 }
 

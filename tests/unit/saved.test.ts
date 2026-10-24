@@ -12,7 +12,7 @@ describe("saved", () => {
   it("saveStation upserts the row", async () => {
     const { sb, calls } = fakeSb();
     await saveStation(sb, "u1", st("a"));
-    expect(calls).toContainEqual(["upsert", { user_id: "u1", station_id: "a", station: st("a") }, { onConflict: "user_id,station_id" }]);
+    expect(calls).toContainEqual(["upsert", { user_id: "u1", station_id: "a", station: st("a") }, { onConflict: "user_id,station_id", ignoreDuplicates: true }]);
   });
 
   it("unsaveStation deletes by user and station", async () => {

@@ -35,7 +35,22 @@ describe("auth store", () => {
     expect(s.pendingSave).toBeNull();
     expect(s.loginOpen).toBe(false);
     expect(s.saved.map((x) => x.id)).toEqual(["a", "x"]);
-    expect(calls).toContainEqual(["upsert", { user_id: "u1", station_id: "a", station: st("a") }, { onConflict: "user_id,station_id" }]);
+    expect(calls).toContainEqual(["upsert", { user_id: "u1", station_id: "a", station: st("a") }, { onConflict: "user_id,station_id", ignoreDuplicates: true }]);
+  });
+
+  it("a re-emitted sign-in event saves the pending station only once", async () => {
+    // Like a real table: rows read after the upsert include the saved station.
+    const result = {
+      get data() {
+        return calls.some((c) => c[0] === "upsert") ? [{ station: st("a") }] : [];
+      },
+      error: null,
+    };
+    const { calls } = setup(result);
+    useAuth.getState().openLogin(st("a"));
+    await Promise.all([handleAuthEvent("INITIAL_SESSION", session), handleAuthEvent("SIGNED_IN", session)]);
+    expect(calls.filter((c) => c[0] === "upsert")).toHaveLength(1);
+    expect(useAuth.getState().saved.map((x) => x.id)).toEqual(["a"]);
   });
 
   it("SIGNED_OUT clears saved", async () => {

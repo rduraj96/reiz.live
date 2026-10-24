@@ -60,23 +60,30 @@ export const useAuth = create<AuthState & AuthActions>()((set, get) => ({
   },
 }));
 
-/** Reacts to a Supabase auth event. Exported for tests. */
-export async function handleAuthEvent(event: string, session: Session | null): Promise<void> {
+let queue: Promise<void> = Promise.resolve();
+
+/** Reacts to a Supabase auth event; events are processed one at a time. Exported for tests. */
+export function handleAuthEvent(event: string, session: Session | null): Promise<void> {
+  queue = queue.then(() => processAuthEvent(event, session));
+  return queue;
+}
+
+async function processAuthEvent(event: string, session: Session | null): Promise<void> {
   if (event === "SIGNED_OUT") {
     useAuth.setState({ user: null, saved: [], pendingSave: null });
     return;
   }
   if ((event !== "SIGNED_IN" && event !== "INITIAL_SESSION") || !session || !sb) return;
   // Read before awaiting: the user may dismiss the dialog meanwhile, which is fine.
+  // Clear it in the same synchronous step so a re-emitted event cannot save it twice.
   const pending = useAuth.getState().pendingSave;
-  useAuth.setState({ user: session.user, ...(event === "SIGNED_IN" ? { loginOpen: false } : {}) });
+  useAuth.setState({ user: session.user, pendingSave: null, ...(event === "SIGNED_IN" ? { loginOpen: false } : {}) });
   try {
     useAuth.setState({ saved: await listSaved(sb) });
   } catch (e) {
     useAuth.setState({ error: `Could not load saved stations: ${message(e)}` });
   }
   if (!pending) return;
-  useAuth.setState({ pendingSave: null });
   const { isSaved, toggleSaved } = useAuth.getState();
   if (!isSaved(pending.id)) await toggleSaved(pending);
 }
