@@ -96,6 +96,49 @@ describe("syncMediaSession", () => {
     expect(first.play).not.toHaveBeenCalled();
   });
 
+  it("falls back to the app icon when the favicon makes MediaMetadata throw", () => {
+    vi.stubGlobal(
+      "MediaMetadata",
+      class {
+        constructor(public init: { artwork?: { src: string }[] }) {
+          if (init.artwork?.some((a) => a.src === "https://")) throw new TypeError("bad artwork");
+        }
+      },
+    );
+    expect(() => syncMediaSession(station({ favicon: "https://" }), "playing", makeActions())).not.toThrow();
+    expect((session.metadata as { init: { title: string; artwork: unknown } }).init).toMatchObject({
+      title: "Groove FM",
+      artwork: [{ src: "/icon-512.png", sizes: "512x512" }],
+    });
+  });
+
+  it("drops artwork when every artwork makes MediaMetadata throw", () => {
+    vi.stubGlobal(
+      "MediaMetadata",
+      class {
+        constructor(public init: { artwork?: unknown[] }) {
+          if (init.artwork?.length) throw new TypeError("bad artwork");
+        }
+      },
+    );
+    expect(() => syncMediaSession(station(), "playing", makeActions())).not.toThrow();
+    const init = (session.metadata as { init: { title: string; artwork?: unknown } }).init;
+    expect(init.title).toBe("Groove FM");
+    expect(init.artwork).toBeUndefined();
+  });
+
+  it("keeps wiring the other handlers when one action is unsupported", () => {
+    session.setActionHandler.mockImplementation((name: string, fn: () => void) => {
+      if (name === "nexttrack") throw new TypeError("unsupported action");
+      handlers[name] = fn;
+    });
+    const actions = makeActions();
+    expect(() => syncMediaSession(station(), "playing", actions)).not.toThrow();
+    expect(Object.keys(handlers).sort()).toEqual(["pause", "play", "previoustrack"]);
+    handlers.previoustrack();
+    expect(actions.prev).toHaveBeenCalledOnce();
+  });
+
   it("does not throw without navigator.mediaSession", () => {
     delete (navigator as unknown as Record<string, unknown>).mediaSession;
     expect(() => syncMediaSession(station(), "playing", makeActions())).not.toThrow();

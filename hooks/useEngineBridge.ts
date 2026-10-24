@@ -55,10 +55,11 @@ export function useEngineBridge() {
 
     syncFromStore();
     const unsubscribe = store.subscribe((state, prev) => {
-      if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
+      // Load first: nothing in the media-session sync may stand between a pick and playback.
+      if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.muted !== prev.muted) engine.setMuted(state.muted);
-      if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
+      if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
     });
 
     return () => {
