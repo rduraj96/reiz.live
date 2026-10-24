@@ -15,7 +15,7 @@ const chip =
 /** Top bar: the REIZDIO wordmark, then the language switch and the SEARCH / SAVED / INFO text buttons. */
 export function Header({ onSearch, onSaved, onInfo }: HeaderProps) {
   return (
-    <header className="relative z-30 flex items-center justify-between gap-2 px-4 py-3.5 min-[760px]:px-8 min-[760px]:py-[26px]">
+    <header className="relative z-30 flex items-center justify-between gap-2 px-4 py-3.5 min-[760px]:px-8 min-[760px]:py-[26px] min-[1440px]:px-16">
       <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground min-[760px]:text-[28px]">REIZDIO</h1>
       <nav aria-label="Main" className="flex items-center gap-0.5">
         <LanguageSwitch className={chip} />

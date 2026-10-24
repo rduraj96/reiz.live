@@ -66,7 +66,7 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
   const rest = current ? [genre?.toUpperCase(), current.countryCode.toUpperCase()].filter(Boolean) : [];
 
   return (
-    <div className="grid grid-cols-[1fr_auto] items-end gap-3 px-5 pb-2.5 md:px-8 md:pb-3.5">
+    <div className="grid grid-cols-[1fr_auto] items-end gap-3 px-5 pb-2.5 md:px-8 md:pb-3.5 min-[1440px]:px-16">
       <div className="min-w-0">
         <div
           data-freq
