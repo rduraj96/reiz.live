@@ -74,7 +74,7 @@ export function Visualizer() {
   return (
     // Fills its positioned parent (the blob button) and centres the blob square in it.
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center">
-      <div ref={containerRef} className="relative aspect-square w-[min(70vw,360px)]">
+      <div ref={containerRef} className="relative aspect-square w-[var(--blob,min(70vw,360px))]">
         {fallback && (
           <div
             data-testid="visualizer-fallback"

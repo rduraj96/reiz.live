@@ -35,7 +35,7 @@ function BlobButton() {
           if (usePlayer.getState().current) togglePlay();
           else tunerApi.tuneNearest();
         }}
-        className="relative z-[2] grid aspect-square w-[min(70vw,360px)] max-w-full cursor-pointer place-items-center rounded-full [grid-area:1/1] focus-visible:outline-offset-[-6px]"
+        className="relative z-[2] grid aspect-square w-[var(--blob)] max-w-full cursor-pointer place-items-center rounded-full [grid-area:1/1] focus-visible:outline-offset-[-6px]"
       >
         <Visualizer />
       </button>
@@ -70,7 +70,8 @@ export function Player({ initialStation }: { initialStation?: Station }) {
         onInfo={() => setAboutOpen(true)}
       />
       <main className="flex min-h-0 flex-1 flex-col">
-        <div className="relative grid min-h-0 flex-1 place-items-center">
+        {/* The blob size fits the stage both ways: the orbit ring (1.55 × blob) must clear a short phone screen too. */}
+        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))]">
           <BigName />
           <BlobButton />
         </div>

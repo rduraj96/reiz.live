@@ -67,18 +67,20 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
   const rest = meta ? [meta.genre, meta.cc].filter(Boolean) : [];
 
   return (
-    <div className="grid grid-cols-[1fr_auto] items-end gap-3 px-5 pb-2.5 md:px-8 md:pb-3.5 min-[1440px]:px-16">
-      <div className="min-w-0">
+    // Phones: frequency line and actions share the top row, so the name gets the full width below.
+    // 760 px and up: the name and frequency stack on the left, actions bottom right.
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 px-5 pb-2.5 md:px-8 md:pb-3.5 min-[760px]:items-end min-[1440px]:px-16">
+      <div className="contents min-[760px]:block min-[760px]:min-w-0">
         <div
           data-freq
-          className="text-xs uppercase tracking-[0.14em] text-muted [font-variant-numeric:tabular-nums]"
+          className="col-start-1 row-start-1 min-w-0 truncate text-xs uppercase tracking-[0.14em] text-muted [font-variant-numeric:tabular-nums] min-[760px]:overflow-visible"
         >
           <b ref={numRef} className="font-normal text-accent" />
           {rest.length > 0 && <span ref={sepRef} />}
           {rest.join(SEP)}
         </div>
         {message ? (
-          <div className="mt-1 flex items-center gap-3 text-xl md:text-[26px]">
+          <div className="col-span-2 row-start-2 flex min-w-0 items-center gap-3 text-xl md:text-[26px] min-[760px]:mt-1">
             <span className="truncate">{message}</span>
             {onRetry && (
               <button
@@ -92,13 +94,13 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
           </div>
         ) : (
           <div
-            className={`mt-1 truncate whitespace-nowrap text-xl tracking-[-0.01em] transition-opacity duration-200 md:text-[26px] ${tuning ? "opacity-35" : ""}`}
+            className={`col-span-2 row-start-2 min-w-0 truncate whitespace-nowrap text-xl tracking-[-0.01em] transition-opacity duration-200 md:text-[26px] min-[760px]:mt-1 ${tuning ? "opacity-35" : ""}`}
           >
             {current?.name}
           </div>
         )}
       </div>
-      <div className="flex gap-0.5">
+      <div className="col-start-2 row-start-1 -mr-2.5 flex gap-0.5 min-[760px]:mr-0">
         <VizToggle className={iconBtn} />
         <HeartButton station={current} className={iconBtn} />
         <ShareButton station={current} className={iconBtn} />

@@ -1,7 +1,7 @@
 /* A full layer over the centre row, behind the blob. Orbit below 760 px, ticker at 760 px and up. */
 .alt {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --blob: min(70vw, 360px);
+  /* --blob comes from the stage (Player), sized to fit its width and height. */
   position: absolute;
   inset: 0;
   display: grid;
@@ -60,7 +60,7 @@
 /* Orbit: a ring of text around the blob, turning once every 26 s. */
 /* 1.55 × blob, but never wider than the screen (the text sits just outside the ring). */
 .orbit svg {
-  --ring: min(calc(var(--blob) * 1.55), calc(100vw - 12px));
+  --ring: min(calc(var(--blob) * 1.55), calc(100cqw - 12px));
   width: var(--ring);
   height: var(--ring);
   flex: none;
