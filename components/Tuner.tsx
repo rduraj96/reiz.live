@@ -13,6 +13,7 @@ import {
   type DialBand,
   type DialLayout,
 } from "@/lib/dial/layout";
+import { START_GENRE } from "@/lib/catalog";
 import type { Station } from "@/lib/radio/types";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
@@ -524,7 +525,12 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     const currentPos = currentId ? positionOf(layout, currentId) : null;
     if (!st.mounted) {
       st.mounted = true;
-      st.offset = currentPos ?? layout.bands[0]?.start ?? 0;
+      // Nothing tuned yet: a shared station's off-dial band, else the start band (which then loads first).
+      const open =
+        layout.bands.find((b) => b.genre === OFF_DIAL_GENRE) ??
+        layout.bands.find((b) => b.genre === START_GENRE) ??
+        layout.bands[0];
+      st.offset = currentPos ?? open?.start ?? 0;
     } else if (prev !== layout) {
       // Keep the needle on the station it was over (if it really was over one). Exception: when that station just fell into the
       // off-dial band (its band reset, e.g. a language switch), stay in the same band so it reloads.

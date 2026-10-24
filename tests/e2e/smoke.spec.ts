@@ -150,3 +150,10 @@ test("a genre preset glides the dial to that band and plays its first station", 
   await expect(genres.getByRole("button", { name: "Jazz" })).toHaveAttribute("aria-current", "true");
   await expect(readoutName(page, "Jazz One")).toBeVisible();
 });
+
+test("a first visit opens on House: it is requested first and the needle sits on it", async ({ page }) => {
+  const requests: string[] = [];
+  await setup(page, { requests });
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
+  expect(new URL(requests[0]).searchParams.get("genre")).toBe("house");
+});
