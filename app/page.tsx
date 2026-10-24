@@ -2,6 +2,8 @@
 
 import { motion } from "motion/react";
 import { useState } from "react";
+import { ChipRow } from "@/components/ChipRow";
+import { CompactPlayBar } from "@/components/CompactPlayBar";
 import { Header } from "@/components/Header";
 import { AboutPanel } from "@/components/AboutPanel";
 import { LoginDialog } from "@/components/LoginDialog";
@@ -45,7 +47,7 @@ export default function Home() {
 
       <Header onOpen={openPanel} onAbout={() => setAboutOpen(true)} />
 
-      <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
+      <div className="absolute inset-0 hidden md:flex items-center justify-between pointer-events-none">
         <motion.div
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -79,6 +81,11 @@ export default function Home() {
         </motion.div>
       </div>
 
+      <div className="md:hidden absolute inset-x-0 top-[4.5rem] z-10 flex flex-col gap-2">
+        <ChipRow label="Language" options={languageOptions} value={language} onChange={setLanguage} />
+        <ChipRow label="Genre" options={genres} value={genre} onChange={setGenre} />
+      </div>
+
       <div className="absolute bottom-20 left-0 right-0 z-20 flex justify-center px-4 text-lg">
         <StationStatus
           loading={loading}
@@ -92,6 +99,7 @@ export default function Home() {
       </div>
 
       <PlayBar />
+      <CompactPlayBar />
       <StationPanel />
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />

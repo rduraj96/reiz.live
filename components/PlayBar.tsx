@@ -30,7 +30,7 @@ export function PlayBar() {
   const flag = current ? flagEmoji(current.countryCode) : "";
 
   return (
-    <div className="absolute bottom-0 z-20 h-16 w-full text-foreground text-xl text-center flex items-center border-t border-muted">
+    <div className="absolute bottom-0 z-20 h-16 w-full text-foreground text-xl text-center hidden md:flex items-center border-t border-muted">
       <div className="h-full hidden md:flex items-center justify-center px-7 text-2xl">
         {flag ? <span title={current?.country}>{flag}</span> : <div className="w-6 h-4 bg-gray-700" />}
       </div>

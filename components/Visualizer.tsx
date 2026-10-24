@@ -48,7 +48,7 @@ export function Visualizer() {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      className="pointer-events-none fixed inset-x-0 top-44 bottom-16 md:inset-0 -z-10 overflow-hidden"
     />
   );
 }

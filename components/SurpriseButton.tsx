@@ -5,7 +5,7 @@ import type { Station } from "@/lib/radio/types";
 import { usePlayer } from "@/store/player";
 import { useToast } from "@/store/toast";
 
-export function SurpriseButton({ className }: { className?: string }) {
+export function SurpriseButton({ className, label = "SURPRISE ME" }: { className?: string; label?: string }) {
   const [busy, setBusy] = useState(false);
 
   async function surprise() {
@@ -30,7 +30,7 @@ export function SurpriseButton({ className }: { className?: string }) {
 
   return (
     <button type="button" onClick={surprise} disabled={busy} className={className}>
-      SURPRISE ME
+      {label}
     </button>
   );
 }
