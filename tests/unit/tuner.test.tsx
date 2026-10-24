@@ -237,15 +237,17 @@ describe("Tuner", () => {
     expect(useDial.getState().needleGenre).toBe("house");
   });
 
-  it("glideTo with prime primes the station instead of selecting it", () => {
+  it("glideTo with prime primes the station instead of selecting it, with the dial queue for next/prev", () => {
     render(<Tuner />);
     act(() => tunerApi.glideTo("t1", { fromOffset: -700, prime: true }));
     expect(spies.setTuning).toHaveBeenCalledWith(true);
     settle();
     expect(spies.prime).toHaveBeenCalledWith(techno[0]);
     expect(spies.select).not.toHaveBeenCalled();
-    expect(spies.setList).not.toHaveBeenCalled();
-    expect(log.slice(-2)).toEqual(["prime", "setTuning"]);
+    expect(log.slice(-3)).toEqual(["prime", "setList", "setTuning"]);
+    // Lock-screen next/prev walk the dial before the user touches it.
+    expect(usePlayer.getState().list.map((s) => s.id)).toEqual([...house, ...techno, ...jazz].map((s) => s.id));
+    expect(usePlayer.getState().current).toEqual(techno[0]);
     expect(usePlayer.getState().primed).toBe(true);
   });
 

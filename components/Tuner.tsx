@@ -260,6 +260,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
         if (arrived && e) {
           if (prime) {
             p.prime(e.station);
+            p.setList(queueFor(id)); // lock-screen next/prev follow the dial before the user touches it
           } else {
             p.setList(queueFor(id));
             p.select(e.station);
