@@ -26,10 +26,15 @@ async function setup(page: Page) {
     route.fulfill({ status: 200, contentType: "audio/wav", body: tone }),
   );
   await page.route("**/api/stations*", (route) => route.fulfill({ json: stations }));
+  await page.route("**/api/stations/search*", (route) => route.fulfill({ json: stations }));
   await page.route("**/api/countries*", (route) =>
     route.fulfill({ json: [{ code: "DE", name: "Germany" }] }),
   );
   await page.goto("/");
+  // The intro primes the first station, which enables share/heart: tab walks must wait for that.
+  await expect(page.getByRole("button", { name: "Share station" })).toBeEnabled();
+  // The intro fades out over the page; axe would measure its half-transparent text.
+  await expect(page.getByTestId("intro")).toHaveCount(0, { timeout: 9000 });
   // Wait for the entrance animations to settle so axe sees final colours/opacity.
   await page.waitForFunction(() => {
     const animated = document.querySelectorAll('header, main > div[style*="opacity"], .pointer-events-auto[style*="opacity"]');
@@ -45,10 +50,11 @@ async function expectNoSevereViolations(page: Page) {
   ).toEqual([]);
 }
 
-// Exact number of real tab stops in each layout (disabled controls are skipped).
-// Desktop: 5 header links, the Language and Genre pickers (one stop each), Stations.
-const DESKTOP_TAB_STOPS = 8;
-const MOBILE_TAB_STOPS = 4;
+// Exact number of real tab stops (disabled controls are skipped); one layout at every width:
+// LanguageSwitch, SEARCH, SAVED, INFO, the blob button, the 2D/3D switch, ambient mode, heart, share, shuffle, the genre presets (one roving stop) and the dial. The intro primes the
+// first station, which enables heart and share; the language options stay hidden while the popover is closed.
+const DESKTOP_TAB_STOPS = 12;
+const MOBILE_TAB_STOPS = 12;
 
 async function focusRing(page: Page) {
   return page.evaluate(() => {
@@ -58,6 +64,9 @@ async function focusRing(page: Page) {
     return { style: cs.outlineStyle, color: cs.outlineColor, width: cs.outlineWidth };
   });
 }
+
+// WebKit's Tab skips buttons unless the OS "Tab to all controls" setting is on, and iPhones have no Tab key.
+const skipTabOnWebKit = (browserName: string) => test.skip(browserName === "webkit", "WebKit's Tab key skips buttons");
 
 async function expectFocusRings(page: Page, tabStops: number) {
   for (let i = 1; i <= tabStops; i++) {
@@ -81,27 +90,28 @@ test.describe("desktop", () => {
 
   test("no serious axe violations with the panel open", async ({ page }) => {
     await setup(page);
-    await page.getByRole("button", { name: "Stations" }).click();
+    await page.getByRole("button", { name: "SEARCH" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(400); // panel slide-in settles before axe samples colours
     await expectNoSevereViolations(page);
   });
 
-  test("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page, browserName }) => {
+    skipTabOnWebKit(browserName);
     await setup(page);
     await expectFocusRings(page, DESKTOP_TAB_STOPS);
   });
 
-  test("genre picker is a keyboard radio group", async ({ page }) => {
+  test("the dial is a keyboard slider", async ({ page }) => {
     await setup(page);
-    const picker = page.getByRole("radiogroup", { name: "Genre" });
-    const checked = picker.getByRole("radio", { checked: true });
-    await expect(checked).toHaveText("House");
-    await checked.focus();
-    const request = page.waitForRequest((r) => r.url().includes("/api/stations?genre=dance"));
-    await page.keyboard.press("ArrowDown");
-    await request;
-    await expect(picker.getByRole("radio", { checked: true })).toHaveText("Dance");
-    await expect(picker.getByRole("radio", { checked: true })).toBeFocused();
+    const dial = page.getByRole("slider", { name: "Tune stations" });
+    await dial.focus();
+    await page.keyboard.press("Home");
+    const first = await dial.getAttribute("aria-valuenow");
+    await page.keyboard.press("ArrowRight");
+    await expect(dial).not.toHaveAttribute("aria-valuenow", first!);
+    await expect(dial).toBeFocused();
   });
 });
 
@@ -115,12 +125,15 @@ test.describe("390px", () => {
 
   test("no serious axe violations with the panel open", async ({ page }) => {
     await setup(page);
-    await page.getByRole("button", { name: "Stations" }).click();
+    await page.getByRole("button", { name: "SEARCH" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(400); // panel slide-in settles before axe samples colours
     await expectNoSevereViolations(page);
   });
 
-  test("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page, browserName }) => {
+    skipTabOnWebKit(browserName);
     await setup(page);
     await expectFocusRings(page, MOBILE_TAB_STOPS);
   });
@@ -128,27 +141,19 @@ test.describe("390px", () => {
 
 test("station rows are buttons", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  await page.getByRole("searchbox", { name: "Search stations" }).fill("alpha");
   await expect(page.getByRole("button", { name: /Alpha FM/ })).toBeVisible();
-});
-
-test("reduced motion disables the marquee", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
-  await page.getByRole("button", { name: /Alpha FM/ }).click();
-  const name = await page.locator(".animate-marquee").first().evaluate((el) => getComputedStyle(el).animationName);
-  expect(name).toBe("none");
 });
 
 test("focus returns to the opener control even when the opener was not focused", async ({ page }) => {
   await setup(page);
   // Simulate Safari/Firefox: a mouse click leaves document.activeElement on body.
-  await page.getByRole("button", { name: "RECENT" }).evaluate((el) => {
+  await page.getByRole("button", { name: "SAVED" }).evaluate((el) => {
     el.addEventListener("mousedown", (e) => e.preventDefault());
   });
-  await page.getByRole("button", { name: "RECENT" }).click();
+  await page.getByRole("button", { name: "SAVED" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "RECENT" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "SAVED" })).toBeFocused();
 });

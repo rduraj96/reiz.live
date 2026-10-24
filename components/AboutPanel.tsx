@@ -1,34 +1,40 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
+import { Takeover, stagger, staggerClass } from "./Takeover";
+
+const text = "max-w-[32ch] text-[clamp(18px,2.4vw,26px)] leading-[1.45] text-[hsl(0_0%_90%)]";
 
 export function AboutPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/70" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 border border-muted bg-background p-6 text-foreground">
-          <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-2xl font-bold tracking-tight">ABOUT</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="size-11 text-2xl text-muted hover:text-foreground">
-              ×
-            </Dialog.Close>
-          </div>
-          <Dialog.Description className="text-base leading-relaxed text-foreground">
-            REIZDIO is free live radio with a 3D visualizer that moves to the music. Stations come from the
-            community-run Radio Browser directory; only streams the visualizer can read are listed. Built by Rei
-            Duraj.
-          </Dialog.Description>
-          <a
-            href="https://github.com/rduraj96/reiz.live"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-11 items-center text-accent underline"
-          >
-            GitHub
-          </a>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Takeover
+      open={open}
+      onOpenChange={onOpenChange}
+      title="About"
+      description={
+        <div className="flex flex-col gap-5">
+          <p className={`${text} ${staggerClass}`} style={stagger(0)}>
+            REIZDIO is free live radio. Use the tuner to tune through genres on the dial, or search for a station and
+            save the ones you love.
+          </p>
+          <p className={`${text} ${staggerClass}`} style={stagger(1)}>
+            The blob in the middle is a liquid chrome visualizer that moves to the music. Stations come from the
+            community-run Radio Browser directory, and only streams the visualizer can read are listed.
+          </p>
+          <p className={`${text} ${staggerClass}`} style={stagger(2)}>
+            Built by Rei Duraj.
+          </p>
+        </div>
+      }
+    >
+      <a
+        href="https://github.com/rduraj96/reiz.live"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-8 inline-flex min-h-12 items-center rounded-full border border-foreground px-6 text-[13px] uppercase tracking-[0.12em] transition-colors hover:border-accent hover:text-accent ${staggerClass}`}
+        style={stagger(3)}
+      >
+        GitHub ↗
+      </a>
+    </Takeover>
   );
 }

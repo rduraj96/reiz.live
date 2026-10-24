@@ -16,26 +16,6 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --font-sans: var(--font-neue);
-
-  --animate-marquee: marquee 25s linear infinite;
-  --animate-marquee2: marquee2 25s linear infinite;
-
-  @keyframes marquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(-100%);
-    }
-  }
-  @keyframes marquee2 {
-    0% {
-      transform: translateX(100%);
-    }
-    100% {
-      transform: translateX(0%);
-    }
-  }
 }
 
 body {
@@ -44,20 +24,49 @@ body {
   font-family: var(--font-neue), Arial, Helvetica, sans-serif;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* In the base layer so a component can swap the ring for its own focus style (e.g. the big underlined inputs). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee,
-  .animate-marquee2,
   .animate-pulse {
     animation: none;
   }
-  /* The duplicate copies only exist to loop the scroll. */
-  .animate-marquee2,
-  .marquee-dup {
-    display: none;
+}
+
+/* Language menu: a small takeover — the panel unrolls from its red top rule and the options rise in. */
+.lang-drop:not([hidden]) {
+  animation: lang-unroll 0.45s cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+.lang-drop:not([hidden]) .lang-option {
+  animation: lang-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(0.12s + var(--i) * 35ms);
+}
+@keyframes lang-unroll {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes lang-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lang-drop:not([hidden]),
+  .lang-drop:not([hidden]) .lang-option {
+    animation: none;
   }
 }

@@ -37,18 +37,35 @@ function setup() {
   });
   const source = { connect: vi.fn() };
   const analyser = { fftSize: 0, connect: vi.fn() };
+  const gains: { gain: { value: number; setTargetAtTime: ReturnType<typeof vi.fn> }; connect: ReturnType<typeof vi.fn> }[] = [];
+  const bufferSource = { buffer: null as unknown, loop: false, connect: vi.fn(), start: vi.fn() };
+  const biquad = { type: "", frequency: { value: 0 }, Q: { value: 0 }, connect: vi.fn() };
   const ctx = {
     destination: {},
+    currentTime: 0,
+    sampleRate: 100,
+    createGain: vi.fn(() => {
+      const g = { gain: { value: 1, setTargetAtTime: vi.fn() }, connect: vi.fn() };
+      gains.push(g);
+      return g;
+    }),
+    createBiquadFilter: vi.fn(() => biquad),
+    createBufferSource: vi.fn(() => bufferSource),
+    createBuffer: vi.fn((_ch: number, len: number) => ({ getChannelData: () => new Float32Array(len) })),
     resume: vi.fn(() => Promise.resolve()),
     createMediaElementSource: vi.fn(() => source),
-    createAnalyser: vi.fn(() => analyser),
+    // The first analyser is the visualizer's; later ones (the deaf-stream probe) are separate nodes.
+    createAnalyser: vi.fn(() => (ctx.createAnalyser.mock.calls.length === 1 ? analyser : { fftSize: 0, connect: vi.fn() })),
   };
   const createContext = vi.fn(() => ctx as unknown as AudioContext);
   const engine = createAudioEngine({
     createAudio: () => audio as unknown as HTMLAudioElement,
     createContext,
   });
-  return { engine, audio, ctx, plays, createContext, analyser };
+  // Graph creation order: streamGain first, then the static's gain.
+  const targets = (i: 0 | 1) => gains[i]?.gain.setTargetAtTime.mock.calls.map((c) => c[0] as number) ?? [];
+  const lastTarget = (i: 0 | 1) => targets(i).at(-1);
+  return { engine, audio, ctx, plays, createContext, analyser, gains, bufferSource, biquad, targets, lastTarget };
 }
 
 const domErr = (name: string) => new DOMException("x", name);
@@ -169,17 +186,15 @@ describe("audio engine", () => {
     expect(engine.analyser).toBe(analyser);
   });
 
-  it("sets crossOrigin anonymous, src, volume and mute", async () => {
+  it("sets crossOrigin anonymous, src and volume", async () => {
     const { engine, audio, plays } = setup();
     engine.setVolume(0.3);
-    engine.setMuted(true);
     const p = engine.load(st("a"));
     plays[0].resolve();
     await p;
     expect(audio.crossOrigin).toBe("anonymous");
     expect(audio.src).toBe("https://example.com/a");
     expect(audio.volume).toBe(0.3);
-    expect(audio.muted).toBe(true);
   });
 });
 
@@ -289,5 +304,124 @@ describe("audio engine: element events and stall timeout", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(events.blocked).toHaveBeenCalledTimes(1);
     expect(events.failed).not.toHaveBeenCalled();
+  });
+});
+
+describe("audio engine: tuning static", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function playingOn(id = "a") {
+    vi.useFakeTimers();
+    const t = setup();
+    void t.engine.load(st(id));
+    t.audio.dispatchEvent(new Event("playing"));
+    return t;
+  }
+
+  it("setTuning(true) before any load builds nothing and does not throw", () => {
+    const { engine, ctx, createContext } = setup();
+    expect(() => engine.setTuning(true)).not.toThrow();
+    expect(createContext).not.toHaveBeenCalled();
+    expect(ctx.createBufferSource).not.toHaveBeenCalled();
+  });
+
+  it("builds a looping bandpass noise chain on first load", () => {
+    const { engine, bufferSource, biquad, ctx } = setup();
+    void engine.load(st("a"));
+    expect(ctx.createGain).toHaveBeenCalledTimes(3); // stream, static, and the probe's mute
+    expect(bufferSource.loop).toBe(true);
+    expect(bufferSource.start).toHaveBeenCalled();
+    expect(biquad).toMatchObject({ type: "bandpass", frequency: { value: 2600 }, Q: { value: 0.4 } });
+  });
+
+  it("tuning on targets stream 0.08 and static 0.45 with time constant 0.05", () => {
+    const { engine, gains } = playingOn();
+    engine.setTuning(true);
+    expect(gains[0].gain.setTargetAtTime).toHaveBeenLastCalledWith(0.08, 0, 0.05);
+    expect(gains[1].gain.setTargetAtTime).toHaveBeenLastCalledWith(0.45, 0, 0.05);
+  });
+
+  it("tuning off with no new load restores stream and silences static (same station)", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.setTuning(true);
+    engine.setTuning(false);
+    expect(lastTarget(0)).toBe(1);
+    expect(lastTarget(1)).toBe(0);
+  });
+
+  it("tuning off with a pending load holds static until playing", () => {
+    const { engine, audio, lastTarget } = playingOn();
+    engine.setTuning(true);
+    void engine.load(st("b"));
+    engine.setTuning(false);
+    expect(lastTarget(1)).toBe(0.45);
+    expect(lastTarget(0)).toBe(0.08);
+    vi.advanceTimersByTime(2_999);
+    expect(lastTarget(1)).toBe(0.45);
+    audio.dispatchEvent(new Event("playing"));
+    expect(lastTarget(1)).toBe(0);
+    expect(lastTarget(0)).toBe(1);
+  });
+
+  it("the hold fades after 3000 ms without playing", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.setTuning(true);
+    void engine.load(st("b"));
+    engine.setTuning(false);
+    vi.advanceTimersByTime(3_000);
+    expect(lastTarget(1)).toBe(0);
+    expect(lastTarget(0)).toBe(1);
+  });
+
+  it("static stays silent while paused", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.pause();
+    engine.setTuning(true);
+    expect(lastTarget(1)).toBe(0);
+  });
+
+  it("tuning on again cancels a hold", () => {
+    const { engine, audio, lastTarget } = playingOn();
+    engine.setTuning(true);
+    void engine.load(st("b"));
+    engine.setTuning(false);
+    engine.setTuning(true);
+    vi.advanceTimersByTime(5_000);
+    expect(lastTarget(1)).toBe(0.45);
+    audio.dispatchEvent(new Event("playing"));
+    expect(lastTarget(1)).toBe(0.45);
+  });
+
+  it("static scales with volume", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.setVolume(0.5);
+    engine.setTuning(true);
+    expect(lastTarget(1)).toBeCloseTo(0.225);
+    engine.setVolume(0.1);
+    expect(lastTarget(1)).toBeCloseTo(0.045);
+  });
+
+  it("static is silent while blocked", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    t.engine.setTuning(true);
+    const p = t.engine.load(st("a"));
+    t.plays[0].reject(domErr("NotAllowedError"));
+    await p;
+    expect(t.lastTarget(1)).toBe(0);
+  });
+
+  it("pausing during a hold clears it; static stays 0", () => {
+    const { engine, lastTarget, targets } = playingOn();
+    engine.setTuning(true);
+    void engine.load(st("b"));
+    engine.setTuning(false);
+    engine.pause();
+    const n = targets(1).length;
+    vi.advanceTimersByTime(3_000);
+    expect(lastTarget(1)).toBe(0);
+    expect(targets(1).length).toBe(n);
   });
 });

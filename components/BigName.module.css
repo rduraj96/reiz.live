@@ -1,0 +1,113 @@
+/* A full layer over the centre row, behind the blob. Orbit below 760 px, ticker at 760 px and up. */
+.alt {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* --blob comes from the stage (Player), sized to fit its width and height. */
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  text-transform: uppercase;
+}
+
+/* Ticker: a band scrolling left continuously; its duration is set from its width (~70 px/s). */
+.band {
+  justify-self: start;
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerScroll 40s linear infinite;
+  opacity: 0;
+  filter: blur(8px);
+  transition:
+    opacity 0.5s,
+    filter 0.5s;
+}
+.band.in {
+  opacity: 1;
+  filter: none;
+}
+.ticker.out .band {
+  opacity: 0;
+  filter: blur(8px);
+  transition-duration: 0.3s;
+}
+.item {
+  font-weight: 800;
+  font-size: clamp(64px, 12vw, 150px);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  padding-right: 0.5em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px hsl(0 0% 62%);
+}
+.item i {
+  font-style: normal;
+  color: var(--accent);
+  -webkit-text-stroke: 0;
+  margin: 0 0.35em;
+  font-size: 0.4em;
+  vertical-align: middle;
+}
+@keyframes tickerScroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Orbit: a ring of text around the blob, turning once every 26 s. */
+/* 1.55 × blob, but never wider than the screen (the text sits just outside the ring). */
+.orbit svg {
+  --ring: min(calc(var(--blob) * 1.55), calc(100cqw - 12px));
+  width: var(--ring);
+  height: var(--ring);
+  flex: none;
+  overflow: visible;
+  animation: orbitSpin 26s linear infinite;
+}
+.orbit text {
+  font-weight: 700;
+  font-size: 15.5px;
+  letter-spacing: 0.32em;
+  fill: var(--foreground);
+}
+.orbit .f {
+  fill: var(--accent);
+}
+.fade {
+  transition: opacity 0.35s;
+}
+.fade.hide {
+  opacity: 0;
+}
+@keyframes orbitSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band,
+  .orbit svg {
+    animation: none;
+  }
+  .band,
+  .fade {
+    transition: none;
+  }
+}
+
+/* Exactly one treatment shows; display: none keeps the other's animation from running. */
+.wide {
+  display: none;
+}
+@media (min-width: 760px) {
+  .wide {
+    display: grid;
+  }
+  .narrow {
+    display: none;
+  }
+}

@@ -1,116 +1,112 @@
 "use client";
 
-import { MotionConfig, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { ChipRow } from "@/components/ChipRow";
-import { CompactPlayBar } from "@/components/CompactPlayBar";
-import { Header } from "@/components/Header";
 import { AboutPanel } from "@/components/AboutPanel";
+import { AmbientControls } from "@/components/AmbientControls";
+import { BigName } from "@/components/BigName";
+import { Intro } from "@/components/Intro";
+import { GenreStrip } from "@/components/GenreStrip";
+import { Header } from "@/components/Header";
 import { LoginDialog } from "@/components/LoginDialog";
-import { PlayBar } from "@/components/PlayBar";
-import ScrollSelect from "@/components/ScrollSelect";
+import { Readout } from "@/components/Readout";
 import { StationPanel } from "@/components/StationPanel";
 import { Toast } from "@/components/Toast";
-import { StationStatus } from "@/components/StationStatus";
+import { Tuner, tunerApi } from "@/components/Tuner";
 import { Visualizer } from "@/components/Visualizer";
-import { useEngineBridge } from "@/hooks/useEngineBridge";
-import { useStations } from "@/hooks/useStations";
-import { genres, languages } from "@/lib/catalog";
+import { useDialBands } from "@/hooks/useDialBands";
+import { togglePlay, useEngineBridge } from "@/hooks/useEngineBridge";
+import { useAmbientMode } from "@/hooks/useAmbientMode";
+import { useNowPlaying } from "@/hooks/useNowPlaying";
+import { useReadoutState } from "@/hooks/useReadoutState";
 import type { Station } from "@/lib/radio/types";
+import { useAmbient } from "@/store/ambient";
 import { usePlayer } from "@/store/player";
 
-const languageOptions = [{ value: "any", label: "Any" }, ...languages];
+/**
+ * The chrome blob is the play/pause button. "Tap to play" shows whenever the stream isn't playing; it is
+ * overlaid on the button rather than inside it, so the button's name ("Play") matches its content (axe).
+ */
+function BlobButton() {
+  const playing = usePlayer((s) => s.status === "playing");
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={playing ? "Pause" : "Play"}
+        onClick={() => {
+          // Nothing tuned yet (the first band loaded late, or after Retry): tune to the station under the needle.
+          if (usePlayer.getState().current) togglePlay();
+          else tunerApi.tuneNearest();
+        }}
+        className="relative z-[2] grid aspect-square w-[var(--blob)] max-w-full cursor-pointer place-items-center rounded-full group-data-[idle]/player:cursor-none [grid-area:1/1] focus-visible:outline-offset-[-6px]"
+      >
+        <Visualizer />
+      </button>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none relative z-[4] rounded-full bg-[rgba(10,10,10,0.55)] px-3 py-2 text-xs uppercase tracking-[0.14em] backdrop-blur-[6px] transition-[opacity,visibility] duration-300 [grid-area:1/1] ${playing ? "invisible opacity-0" : "opacity-100"}`}
+      >
+        Tap to play
+      </span>
+    </>
+  );
+}
 
+/** One full-height stage: header, then the big name behind the blob, the readout and the tuner dial. */
 export function Player({ initialStation }: { initialStation?: Station }) {
   // Must run before the bridge's mount effect so the primed station isn't auto-loaded.
   useEffect(() => {
     if (initialStation) usePlayer.getState().prime(initialStation);
   }, [initialStation]);
   useEngineBridge();
-  const { loading, retry } = useStations();
+  useDialBands();
+  useNowPlaying();
+  useAmbientMode();
+  const ambient = useAmbient((s) => s.on);
+  const idle = useAmbient((s) => s.idle);
+  const readout = useReadoutState();
 
-  const genre = usePlayer((s) => s.genre);
-  const language = usePlayer((s) => s.language);
-  const setGenre = usePlayer((s) => s.setGenre);
-  const setLanguage = usePlayer((s) => s.setLanguage);
-  const listEmpty = usePlayer((s) => s.list.length === 0);
-  const listError = usePlayer((s) => s.listError);
   const openPanel = usePlayer((s) => s.openPanel);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const playbackFailed = usePlayer((s) => s.status === "error");
 
   return (
-    <MotionConfig reducedMotion="user">
-    <main className="relative w-full min-h-dvh overflow-hidden">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-        className="absolute inset-0"
-      >
-        <Visualizer />
-      </motion.div>
-
-      <Header onOpen={openPanel} onAbout={() => setAboutOpen(true)} />
-
-      <div className="absolute inset-0 hidden md:flex items-center justify-between pointer-events-none">
-        <motion.div
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.5 }}
-          className="pointer-events-auto ml-4 md:ml-[5%] lg:ml-[10%]"
-        >
-          <ScrollSelect
-            options={languageOptions}
-            value={language}
-            onChange={setLanguage}
-            label="Language"
-            orientation="left"
-            width="w-36 md:w-64"
+    // Ambient mode folds the header and the controls under the stage away (and hides them from tabbing), so the
+    // stage takes the whole screen and the blob grows: no 360 px cap, and up to 80 % of the stage on wide screens.
+    <div
+      data-ambient={ambient || undefined}
+      data-idle={(ambient && idle) || undefined}
+      className="group/player relative flex h-dvh w-full select-none flex-col overflow-hidden data-[idle]:cursor-none"
+    >
+      <div className="grid transition-[grid-template-rows,opacity,visibility] duration-500 motion-reduce:transition-none grid-rows-[1fr] group-data-[ambient]/player:invisible group-data-[ambient]/player:grid-rows-[0fr] group-data-[ambient]/player:opacity-0">
+        <div className="min-h-0 overflow-hidden">
+          <Header
+            onSearch={() => openPanel("search")}
+            onSaved={() => openPanel("saved")}
+            onInfo={() => setAboutOpen(true)}
           />
-        </motion.div>
-
-        <motion.div
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.9, duration: 0.5 }}
-          className="pointer-events-auto mr-4 md:mr-[5%] lg:mr-[10%]"
-        >
-          <ScrollSelect
-            options={genres}
-            value={genre}
-            onChange={setGenre}
-            label="Genre"
-            orientation="right"
-            width="w-36 md:w-64"
-          />
-        </motion.div>
+        </div>
       </div>
+      <main className="flex min-h-0 flex-1 flex-col">
+        {/* The blob size fits the stage both ways: the orbit ring (1.55 × blob) must clear a short phone screen too. */}
+        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))] group-data-[ambient]/player:[--blob:min(70cqw,calc((100cqh-28px)/1.55))] min-[760px]:group-data-[ambient]/player:[--blob:min(80cqw,80cqh)]">
+          <BigName />
+          <BlobButton />
+        </div>
+        <div className="grid transition-[grid-template-rows,opacity,visibility] duration-500 motion-reduce:transition-none grid-rows-[1fr] group-data-[ambient]/player:invisible group-data-[ambient]/player:grid-rows-[0fr] group-data-[ambient]/player:opacity-0">
+          <div className="min-h-0 overflow-hidden">
+            <Readout {...readout} />
+            <GenreStrip />
+            <Tuner offDial={initialStation ? { station: initialStation, label: "Shared" } : undefined} />
+          </div>
+        </div>
+      </main>
+      <AmbientControls />
 
-      <div className="md:hidden absolute inset-x-0 top-[4.5rem] z-10 flex flex-col gap-2">
-        <ChipRow label="Language" options={languageOptions} value={language} onChange={setLanguage} />
-        <ChipRow label="Genre" options={genres} value={genre} onChange={setGenre} />
-      </div>
-
-      <div className="absolute bottom-20 left-0 right-0 z-20 flex justify-center px-4 text-lg">
-        <StationStatus
-          loading={loading}
-          listError={listError}
-          empty={listEmpty}
-          playbackFailed={playbackFailed}
-          language={language}
-          onRetry={retry}
-          onAnyLanguage={() => setLanguage("any")}
-        />
-      </div>
-
-      <PlayBar />
-      <CompactPlayBar />
       <StationPanel />
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
       <Toast />
-    </main>
-    </MotionConfig>
+      <Intro />
+    </div>
   );
 }

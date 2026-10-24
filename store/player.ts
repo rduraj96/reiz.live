@@ -6,43 +6,40 @@ export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "blocked"
 
 const MAX_FAILED_IN_A_ROW = 5;
 
-export type PanelTab = "browse" | "recent" | "saved";
+export type PanelTab = "search" | "recent" | "saved";
 
 type PlayerState = {
   /** The play queue: next/prev walk it. Whichever tab the last pick came from. */
   list: Station[];
-  /** The genre + language list shown in Browse; only useStations replaces it. */
-  genreList: Station[];
   current: Station | null;
   status: PlayerStatus;
-  genre: string;
   language: string;
-  muted: boolean;
+  /** The dial is being dragged: the engine plays tuning static. */
+  tuning: boolean;
   volume: number;
   failedInARow: number;
   /** Current station came from a share link and hasn't been loaded yet (autoplay is blocked until a tap). */
   primed: boolean;
-  listError: string | null;
   panel: { open: boolean; tab: PanelTab };
+  /** "Artist - Title" from the current station's stream, when it sends one. */
+  nowPlaying: string | null;
 };
 
 type PlayerActions = {
   setList: (list: Station[]) => void;
-  setGenreList: (genreList: Station[]) => void;
   prime: (station: Station) => void;
   select: (station: Station) => void;
   next: () => void;
   prev: () => void;
   markFailed: (station: Station) => void;
   reportFailure: (station: Station) => void;
-  setGenre: (g: string) => void;
   setLanguage: (l: string) => void;
+  setTuning: (on: boolean) => void;
   setStatus: (s: PlayerStatus) => void;
-  toggleMute: () => void;
   setVolume: (v: number) => void;
-  setListError: (e: string | null) => void;
   openPanel: (tab: PanelTab) => void;
   closePanel: () => void;
+  setNowPlaying: (title: string | null) => void;
 };
 
 export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
@@ -57,20 +54,17 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
 
   return {
     list: [],
-    genreList: [],
     current: null,
     status: "idle",
-    genre: "house",
-    language: "english",
-    muted: false,
+    language: "any",
+    tuning: false,
     volume: 0.8,
     failedInARow: 0,
     primed: false,
-    listError: null,
-    panel: { open: false, tab: "browse" },
+    panel: { open: false, tab: "search" },
+    nowPlaying: null,
 
     setList: (list) => set({ list, failedInARow: 0 }),
-    setGenreList: (genreList) => set({ genreList }),
     prime: (station) =>
       set({ list: [station], current: station, status: "blocked", primed: true, failedInARow: 0 }),
     select: (station) => {
@@ -80,20 +74,18 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     next: () => step(1),
     prev: () => step(-1),
     markFailed: (station) => {
-      const { list, genreList, failedInARow } = get();
+      const { list, failedInARow } = get();
       const i = list.findIndex((s) => s.id === station.id);
       if (i === -1) return; // already handled (e.g. duplicate failure report)
       const rest = list.filter((s) => s.id !== station.id);
-      // A dead station disappears from Browse too.
-      const browse = genreList.filter((s) => s.id !== station.id);
       const failed = failedInARow + 1;
       if (rest.length === 0 || failed >= MAX_FAILED_IN_A_ROW) {
-        set({ list: rest, genreList: browse, failedInARow: failed, status: "error", current: null });
+        set({ list: rest, failedInARow: failed, status: "error", current: null });
         return;
       }
       // After removal the station that followed `station` sits at its old index.
       const following = rest[i % rest.length];
-      set({ list: rest, genreList: browse, failedInARow: failed, current: following, status: "loading", primed: false });
+      set({ list: rest, failedInARow: failed, current: following, status: "loading", primed: false });
     },
     reportFailure: (station) => {
       const { list, current } = get();
@@ -104,14 +96,13 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
         useToast.getState().show("Couldn't play this station");
       }
     },
-    setGenre: (genre) => set({ genre }),
     setLanguage: (language) => set({ language }),
+    setTuning: (tuning) => set({ tuning }),
     setStatus: (status) =>
       set(status === "playing" ? { status, failedInARow: 0 } : { status }),
-    toggleMute: () => set((s) => ({ muted: !s.muted })),
     setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
-    setListError: (listError) => set({ listError }),
     openPanel: (tab) => set({ panel: { open: true, tab } }),
     closePanel: () => set((s) => ({ panel: { ...s.panel, open: false } })),
+    setNowPlaying: (nowPlaying) => set({ nowPlaying }),
   };
 });

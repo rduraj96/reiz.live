@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { syncMediaSession } from "@/lib/audio/mediaSession";
+import { createFailureRecorder } from "@/lib/library/failureRecorder";
 import { addRecent } from "@/lib/library/recents";
 import { usePlayer } from "@/store/player";
 
@@ -29,37 +30,48 @@ const mediaActions = {
 };
 
 function syncFromStore() {
-  const { current, status } = usePlayer.getState();
-  syncMediaSession(current, status, mediaActions);
+  const { current, status, nowPlaying } = usePlayer.getState();
+  syncMediaSession(current, status, mediaActions, nowPlaying);
 }
 
 /** The single place where store and audio engine are kept in sync. Mount once. */
 export function useEngineBridge() {
   useEffect(() => {
     const engine = getAudioEngine();
+    // Only a station that never started playing counts as dead (not a stall or the listener's dropped connection).
+    const failures = createFailureRecorder();
     const store = usePlayer;
     const initial = store.getState();
     engine.setVolume(initial.volume);
-    engine.setMuted(initial.muted);
+    engine.setTuning(initial.tuning);
     if (initial.current && !initial.primed) void engine.load(initial.current);
 
     const offs = [
       engine.on("playing", (station) => {
         store.getState().setStatus("playing");
         addRecent(station);
+        failures.playing(station.id);
       }),
       engine.on("paused", () => store.getState().setStatus("paused")),
       engine.on("blocked", () => store.getState().setStatus("blocked")),
-      engine.on("failed", (station) => store.getState().reportFailure(station)),
+      engine.on("failed", (station) => {
+        failures.failed(station.id);
+        store.getState().reportFailure(station);
+      }),
     ];
 
     syncFromStore();
     const unsubscribe = store.subscribe((state, prev) => {
       // Load first: nothing in the media-session sync may stand between a pick and playback.
-      if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
+      if (state.current && state.current !== prev.current && !state.primed) {
+        failures.loaded(state.current.id);
+        void engine.load(state.current);
+      }
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
-      if (state.muted !== prev.muted) engine.setMuted(state.muted);
-      if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
+      if (state.tuning !== prev.tuning) engine.setTuning(state.tuning);
+      if (state.current !== prev.current || state.status !== prev.status || state.nowPlaying !== prev.nowPlaying) {
+        syncFromStore();
+      }
     });
 
     return () => {
