@@ -1,10 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
+import { AboutPanel } from "@/components/AboutPanel";
 import { LoginDialog } from "@/components/LoginDialog";
 import { PlayBar } from "@/components/PlayBar";
 import ScrollSelect from "@/components/ScrollSelect";
+import { StationPanel } from "@/components/StationPanel";
 import { StationStatus } from "@/components/StationStatus";
 import { Visualizer } from "@/components/Visualizer";
 import { useEngineBridge } from "@/hooks/useEngineBridge";
@@ -24,6 +27,8 @@ export default function Home() {
   const setLanguage = usePlayer((s) => s.setLanguage);
   const listEmpty = usePlayer((s) => s.list.length === 0);
   const listError = usePlayer((s) => s.listError);
+  const openPanel = usePlayer((s) => s.openPanel);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const playbackFailed = usePlayer((s) => s.status === "error");
 
   return (
@@ -37,7 +42,7 @@ export default function Home() {
         <Visualizer />
       </motion.div>
 
-      <Header onOpen={() => {}} onAbout={() => {}} />
+      <Header onOpen={openPanel} onAbout={() => setAboutOpen(true)} />
 
       <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
         <motion.div
@@ -86,6 +91,8 @@ export default function Home() {
       </div>
 
       <PlayBar />
+      <StationPanel />
+      <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
     </main>
   );

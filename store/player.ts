@@ -5,6 +5,8 @@ export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "blocked"
 
 const MAX_FAILED_IN_A_ROW = 5;
 
+export type PanelTab = "browse" | "recent" | "saved";
+
 type PlayerState = {
   list: Station[];
   current: Station | null;
@@ -15,6 +17,7 @@ type PlayerState = {
   volume: number;
   failedInARow: number;
   listError: string | null;
+  panel: { open: boolean; tab: PanelTab };
 };
 
 type PlayerActions = {
@@ -30,6 +33,8 @@ type PlayerActions = {
   toggleMute: () => void;
   setVolume: (v: number) => void;
   setListError: (e: string | null) => void;
+  openPanel: (tab: PanelTab) => void;
+  closePanel: () => void;
 };
 
 export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
@@ -52,6 +57,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     volume: 0.8,
     failedInARow: 0,
     listError: null,
+    panel: { open: false, tab: "browse" },
 
     setList: (list) => set({ list, failedInARow: 0 }),
     select: (station) => {
@@ -87,5 +93,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     toggleMute: () => set((s) => ({ muted: !s.muted })),
     setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
     setListError: (listError) => set({ listError }),
+    openPanel: (tab) => set({ panel: { open: true, tab } }),
+    closePanel: () => set((s) => ({ panel: { ...s.panel, open: false } })),
   };
 });

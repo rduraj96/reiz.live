@@ -1,5 +1,6 @@
 import { flagEmoji } from "@/lib/flag";
 import type { Station } from "@/lib/radio/types";
+import { HeartButton } from "./HeartButton";
 
 type StationRowProps = {
   station: Station;
@@ -10,16 +11,16 @@ type StationRowProps = {
 export function StationRow({ station, active, onSelect }: StationRowProps) {
   const flag = flagEmoji(station.countryCode);
   return (
-    <li>
+    <li
+      className={`rounded-lg border flex items-center transition-colors ${
+        active ? "bg-foreground text-background border-accent" : "border-transparent hover:border-foreground"
+      }`}
+    >
       <button
         type="button"
         onClick={onSelect}
         aria-current={active || undefined}
-        className={`w-full min-h-14 p-3 rounded-lg border flex items-center gap-4 text-left transition-colors ${
-          active
-            ? "bg-foreground text-background border-accent"
-            : "border-transparent text-foreground hover:border-foreground"
-        }`}
+        className="min-w-0 flex-1 min-h-14 p-3 flex items-center gap-4 text-left"
       >
         {station.favicon ? (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary third-party favicons
@@ -46,6 +47,7 @@ export function StationRow({ station, active, onSelect }: StationRowProps) {
           </span>
         )}
       </button>
+      <HeartButton station={station} className="size-11 mr-1 shrink-0 flex items-center justify-center" />
     </li>
   );
 }

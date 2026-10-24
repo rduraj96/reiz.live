@@ -1,0 +1,145 @@
+"use client";
+
+import * as Dialog from "@radix-ui/react-dialog";
+import { useRef } from "react";
+import { togglePlay } from "@/hooks/useEngineBridge";
+import { useRecents } from "@/lib/library/recents";
+import type { Station } from "@/lib/radio/types";
+import { useAuth } from "@/store/auth";
+import { usePlayer, type PanelTab } from "@/store/player";
+import { StationRow } from "./StationRow";
+
+const TABS: { id: PanelTab; label: string }[] = [
+  { id: "browse", label: "Browse" },
+  { id: "recent", label: "Recent" },
+  { id: "saved", label: "Saved" },
+];
+
+export function StationPanel() {
+  const { open, tab } = usePlayer((s) => s.panel);
+  const openPanel = usePlayer((s) => s.openPanel);
+  const closePanel = usePlayer((s) => s.closePanel);
+  const list = usePlayer((s) => s.list);
+  const current = usePlayer((s) => s.current);
+  const status = usePlayer((s) => s.status);
+  const recents = useRecents();
+  const saved = useAuth((s) => s.saved);
+  const user = useAuth((s) => s.user);
+  const openLogin = useAuth((s) => s.openLogin);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const tabRefs = useRef<Record<PanelTab, HTMLButtonElement | null>>({ browse: null, recent: null, saved: null });
+
+  function pick(station: Station, stations: Station[]) {
+    const { setList, select } = usePlayer.getState();
+    if (stations !== list) setList(stations);
+    if (station.id !== current?.id) select(station);
+    else if (status === "paused" || status === "blocked" || status === "idle") togglePlay();
+    closePanel();
+  }
+
+  function onTabKeyDown(e: React.KeyboardEvent, index: number) {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const next = TABS[(index + step + TABS.length) % TABS.length].id;
+    openPanel(next);
+    tabRefs.current[next]?.focus();
+  }
+
+  function renderStations(stations: Station[], empty: string) {
+    if (stations.length === 0) return <p className="text-muted">{empty}</p>;
+    return (
+      <ul className="space-y-2">
+        {stations.map((station) => (
+          <StationRow
+            key={station.id}
+            station={station}
+            active={station.id === current?.id}
+            onSelect={() => pick(station, stations)}
+          />
+        ))}
+      </ul>
+    );
+  }
+
+  function body() {
+    if (tab === "browse") return renderStations(list, "No stations loaded.");
+    if (tab === "recent") return renderStations(recents, "Nothing played yet");
+    if (!user) {
+      return (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted">Log in to save stations</p>
+          <button
+            type="button"
+            onClick={() => openLogin()}
+            className="min-h-11 border border-foreground px-4 text-foreground hover:border-accent"
+          >
+            Log in
+          </button>
+        </div>
+      );
+    }
+    return renderStations(saved, "No saved stations yet");
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(o) => !o && closePanel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
+        <Dialog.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={() => {
+            openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }}
+          onCloseAutoFocus={(e) => {
+            // No Dialog.Trigger (opened via the store), so hand focus back to the opener ourselves.
+            e.preventDefault();
+            openerRef.current?.focus();
+          }}
+          className="fixed z-50 flex flex-col border border-muted bg-background p-4 text-foreground inset-x-0 bottom-0 h-[85dvh] md:inset-x-auto md:right-0 md:top-0 md:bottom-auto md:h-dvh md:w-[400px]"
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <Dialog.Title className="text-2xl font-bold tracking-tight">STATIONS</Dialog.Title>
+            <Dialog.Close aria-label="Close" className="size-11 text-2xl text-muted hover:text-foreground">
+              ×
+            </Dialog.Close>
+          </div>
+          <div role="tablist" aria-label="Station lists" className="mb-3 flex border-b border-muted">
+            {TABS.map((t, i) => {
+              const selected = t.id === tab;
+              return (
+                <button
+                  key={t.id}
+                  ref={(el) => {
+                    tabRefs.current[t.id] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`panel-tab-${t.id}`}
+                  aria-selected={selected}
+                  aria-controls="panel-tabpanel"
+                  tabIndex={selected ? 0 : -1}
+                  onClick={() => openPanel(t.id)}
+                  onKeyDown={(e) => onTabKeyDown(e, i)}
+                  className={`min-h-11 flex-1 border-b-2 text-lg ${
+                    selected ? "border-accent text-foreground" : "border-transparent text-muted hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <div
+            role="tabpanel"
+            id="panel-tabpanel"
+            aria-labelledby={`panel-tab-${tab}`}
+            className="min-h-0 flex-1 overflow-y-auto"
+          >
+            {body()}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

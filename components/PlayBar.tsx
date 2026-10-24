@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { flagEmoji } from "@/lib/flag";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
 import { LiveClock } from "./LiveClock";
-import { StationList } from "./StationList";
 import { StationMarquee } from "./StationMarquee";
 
 const divider = <div className="h-full bg-muted w-px" />;
@@ -26,7 +24,7 @@ export function PlayBar() {
   const status = usePlayer((s) => s.status);
   const muted = usePlayer((s) => s.muted);
   const toggleMute = usePlayer((s) => s.toggleMute);
-  const [listOpen, setListOpen] = useState(false);
+  const openPanel = usePlayer((s) => s.openPanel);
 
   const playing = status === "playing";
   const flag = current ? flagEmoji(current.countryCode) : "";
@@ -84,13 +82,12 @@ export function PlayBar() {
       </div>
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">
-        <button type="button" onClick={() => setListOpen(true)} aria-label="Stations" className={iconBtn}>
+        <button type="button" onClick={() => openPanel("browse")} aria-label="Stations" className={iconBtn}>
           <Svg>
             <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
           </Svg>
         </button>
       </div>
-      {listOpen && <StationList onClose={() => setListOpen(false)} />}
     </div>
   );
 }

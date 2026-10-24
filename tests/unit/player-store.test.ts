@@ -28,6 +28,14 @@ describe("player store", () => {
     expect(s).toMatchObject({ genre: "house", language: "english", volume: 0.8, status: "idle", muted: false });
   });
 
+  it("openPanel opens on the given tab and closePanel keeps the tab", () => {
+    expect(usePlayer.getState().panel).toEqual({ open: false, tab: "browse" });
+    usePlayer.getState().openPanel("saved");
+    expect(usePlayer.getState().panel).toEqual({ open: true, tab: "saved" });
+    usePlayer.getState().closePanel();
+    expect(usePlayer.getState().panel).toEqual({ open: false, tab: "saved" });
+  });
+
   it("select sets current and loading", () => {
     usePlayer.getState().select(st("a"));
     expect(usePlayer.getState().current?.id).toBe("a");
