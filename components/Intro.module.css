@@ -1,0 +1,60 @@
+.layer {
+  container-type: size;
+  background: #000;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.read {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-140%);
+  text-align: center;
+}
+.num {
+  display: block;
+  font-size: clamp(64px, 14cqw, 180px);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.cap {
+  display: block;
+  margin-top: 0.6em;
+  font-size: clamp(11px, 1.6cqw, 16px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.scale {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: clamp(32px, 6cqw, 72px);
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, #3a3a3a 0 1px, transparent 1px 2.8cqw);
+  mask-image: linear-gradient(180deg, transparent 30%, #000 30% 70%, transparent 70%);
+}
+.needle {
+  position: absolute;
+  top: calc(50% - clamp(24px, 4.5cqw, 54px));
+  height: clamp(48px, 9cqw, 108px);
+  width: 2px;
+  margin-left: -1px;
+  left: 8%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(238, 38, 71, 0.8);
+}
+.ends {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: calc(50% + clamp(26px, 4.5cqw, 56px));
+  display: flex;
+  justify-content: space-between;
+  font-size: clamp(10px, 1.4cqw, 14px);
+  color: #7a7a7a; /* 4.6:1 on black: small text needs 4.5 */
+  letter-spacing: 0.1em;
+}

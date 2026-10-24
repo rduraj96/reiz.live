@@ -1,0 +1,134 @@
+/* Full-screen editorial panel: opens from a line across the middle (the intro split in reverse) and closes back into it. */
+.content {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--foreground);
+  outline: none;
+}
+.content[data-state="open"] {
+  animation: split-open 0.75s cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+.content[data-state="closed"] {
+  animation: split-close 0.6s cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+@keyframes split-open {
+  from {
+    clip-path: inset(50% 0 50% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes split-close {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(50% 0 50% 0);
+  }
+}
+
+.scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px 48px;
+}
+@media (min-width: 760px) {
+  .scroll {
+    padding: 40px 32px 64px;
+  }
+}
+@media (min-width: 1440px) {
+  .scroll {
+    padding-left: 64px;
+    padding-right: 64px;
+  }
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: var(--muted);
+  transition: color 0.2s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.close:hover {
+  color: var(--foreground);
+  transform: rotate(90deg);
+}
+@media (min-width: 760px) {
+  .close {
+    top: 28px;
+    right: 20px;
+  }
+}
+@media (min-width: 1440px) {
+  .close {
+    right: 52px;
+  }
+}
+
+/* The giant outlined heading, matching the ticker; its letters rise in one after another. */
+.giant {
+  margin: 0 0 20px;
+  padding-right: 48px;
+  font-size: clamp(56px, 15vw, 200px);
+  font-weight: 700;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  color: transparent;
+  -webkit-text-stroke: 1.5px hsl(0 0% 40%);
+}
+.letter {
+  display: inline-block;
+  animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(0.25s + var(--i) * 40ms);
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(60%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Content blocks and list rows slide in from the left, staggered by --i. */
+.stagger {
+  animation: slide-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(0.3s + var(--i, 0) * 45ms);
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content[data-state="open"],
+  .content[data-state="closed"],
+  .letter,
+  .stagger {
+    animation: none;
+  }
+}
