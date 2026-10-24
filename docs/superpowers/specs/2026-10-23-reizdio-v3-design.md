@@ -48,7 +48,7 @@ Problems found:
 - **`lib/library/saved.ts`**: Supabase `saved_stations` CRUD keyed by `station_id`.
 - **`store/player.ts`**: Zustand store holding the current station, list, genre, language, play state, mute and volume. It replaces `StationContext`.
 
-**Supabase migration** (`supabase/migrations/…_add_station_id.sql`): add a nullable `station_id text` column to `saved_stations`, plus a unique index on `(user_id, station_id)`. Existing rows without `station_id` are still shown and can still be removed (fallback match on `url`). The user applies the migration manually.
+**Supabase schema** (`supabase/migrations/…_saved_stations.sql`): existing saved data is not preserved. The migration drops and recreates `saved_stations` as `(user_id uuid references auth.users, station_id text, station jsonb, created_at timestamptz default now(), primary key (user_id, station_id))`, where `station` is a snapshot of the normalized `Station`. Row-level security lets users select, insert and delete only their own rows. The user applies the migration manually.
 
 ## 2. Features
 
@@ -58,7 +58,7 @@ Problems found:
 
 **Recents.** Persisted in localStorage (see `lib/library/recents.ts`). No account needed.
 
-**Saved.** Heart toggle. When logged out, the heart opens the login dialog and the pending save completes after login.
+**Saved.** Heart toggle, starting from an empty table. When logged out, the heart opens the login dialog and the pending save completes after login.
 
 **Search & discovery.**
 - The Browse tab has name search across all of Radio Browser, with an optional country filter.
@@ -109,7 +109,7 @@ Problems found:
   - Radio Browser normalization
   - stream verification (mocked fetch: https/cors/timeout cases)
   - recents (dedupe, cap)
-  - saved (url fallback)
+  - saved (row ↔ `Station` mapping)
   - player store transitions
 - **Playwright smoke test:** load `/`, verify stations appear, select one, assert the engine reaches `playing`. Uses a mocked stations API and a local test audio file, so CI doesn't depend on live streams.
 - **Manual on a real phone:** lock-screen controls and background playback (iOS risk above).
@@ -119,7 +119,7 @@ Problems found:
 Each phase leaves the app deployable.
 
 1. **Foundation:** scaffold, port visualizer, audio engine, stations API with verification, store, dead code removed.
-2. **Nav:** station panel, Recent, Saved (+ migration), About.
+2. **Nav:** station panel, Recent, Saved (+ fresh table), About.
 3. **Search & discovery:** search, country filter, Surprise me.
 4. **Phones:** responsive layout, Media Session, iOS check.
 5. **Sharing:** `/s/[stationId]`, OG image, share button.
