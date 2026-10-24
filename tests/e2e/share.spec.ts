@@ -1,21 +1,55 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const KNOWN_ID = "11111111-aaaa-bbbb-cccc-000000000001";
 
+const fixtureStation = {
+  id: KNOWN_ID,
+  name: "Fixture FM",
+  streamUrl: "/__test/tone.wav",
+  homepage: null,
+  favicon: null,
+  country: "Germany",
+  countryCode: "DE",
+  language: "english",
+  tags: ["house"],
+  codec: "WAV",
+  bitrate: 128,
+};
+
+/** Every band answers with `list`; `[]` means the shared station is on no loaded band. */
+async function mockBands(page: Page, list: unknown[]) {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: list }));
+}
+
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await mockBands(page, []);
 });
 
-// fixme(Task 11: the "Tap to play" play-bar button was removed (the blob button is "Play")).
-test.fixme("share link loads the station and plays on tap", async ({ page }) => {
+test("share link primes the station off the dial: band Shared, plays on first tap", async ({ page }) => {
   await page.goto(`/s/${KNOWN_ID}`);
-  await expect(page.getByText("Fixture FM").first()).toBeVisible();
-  const tap = page.getByRole("button", { name: "Tap to play" });
-  await expect(tap).toBeVisible();
+  await expect(page.getByTestId("intro")).toHaveCount(0, { timeout: 9000 });
+  await expect(page.locator("main").getByText("Fixture FM").and(page.locator(':not([aria-hidden="true"])')).first()).toBeVisible();
+  await expect(page.getByText("Shared", { exact: true })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute(
+    "aria-valuetext",
+    "Fixture FM, Shared",
+  );
+  await expect(page.getByText("Tap to play")).toBeVisible();
   // Nothing plays until the user taps.
   await expect(page.getByRole("button", { name: "Pause" })).toHaveCount(0);
-  await tap.click();
+  await page.getByRole("button", { name: "Play" }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
+});
+
+test("share link whose station is on a loaded band: needle sits on it, no Shared band", async ({ page }) => {
+  await mockBands(page, [fixtureStation]);
+  await page.goto(`/s/${KNOWN_ID}`);
+  await expect(page.getByTestId("intro")).toHaveCount(0, { timeout: 9000 });
+  const dial = page.getByRole("slider", { name: "Tune stations" });
+  await expect(dial).toHaveAttribute("aria-valuetext", /^Fixture FM, (?!Shared)/);
+  await expect(page.getByText("Shared", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Tap to play")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pause" })).toHaveCount(0);
 });
 
 test("unknown station id shows a friendly page with a link home", async ({ page }) => {

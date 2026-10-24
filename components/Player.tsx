@@ -67,7 +67,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
           <BlobButton />
         </div>
         <Readout />
-        <Tuner />
+        <Tuner offDial={initialStation ? { station: initialStation, label: "Shared" } : undefined} />
       </main>
 
       <StationPanel />
