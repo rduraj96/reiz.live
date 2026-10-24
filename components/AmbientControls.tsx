@@ -37,7 +37,8 @@ export function AmbientControls() {
       if (useAmbient.getState().idle) useAmbient.getState().setIdle(false);
       timer = setTimeout(() => useAmbient.getState().setIdle(true), AMBIENT_IDLE_MS);
     };
-    const events = ["pointermove", "pointerdown", "keydown", "touchstart"] as const;
+    // Not pointerdown: while idle a tap or click is caught by the wake layer below, so it can't fall through.
+    const events = ["pointermove", "keydown"] as const;
     events.forEach((e) => window.addEventListener(e, wake, { passive: true }));
     return () => {
       clearTimeout(timer);
@@ -47,7 +48,16 @@ export function AmbientControls() {
 
   if (!on) return null;
   return (
-    <div
+    <>
+      {idle && (
+        // While the controls are hidden, the first tap or click only brings them back: it mustn't pause the music.
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-20 cursor-none"
+          onClick={() => useAmbient.getState().setIdle(false)}
+        />
+      )}
+      <div
       data-testid="ambient-bar"
       data-idle={idle || undefined}
       className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 transition-opacity duration-700 data-[idle]:pointer-events-none data-[idle]:opacity-0 motion-reduce:transition-none md:px-8 min-[1440px]:px-16"
@@ -68,5 +78,6 @@ export function AmbientControls() {
         Exit ambient mode
       </button>
     </div>
+    </>
   );
 }

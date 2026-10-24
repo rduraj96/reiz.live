@@ -32,6 +32,11 @@ async function setup(page: Page) {
 
 const dial = (page: Page) => page.getByRole("slider", { name: "Tune stations" });
 const exitButton = (page: Page) => page.getByRole("button", { name: "Exit ambient mode" });
+/** Like a user reaching for the controls: a pointer move brings back the bar if it went idle. */
+const wake = async (page: Page) => {
+  await page.mouse.move(10, 10);
+  await page.mouse.move(20, 20);
+};
 const blobWidth = async (page: Page) => (await page.getByRole("button", { name: /^(Play|Pause)$/ }).boundingBox())!.width;
 
 test("the ambient button hides the controls, grows the visualizer, and Esc brings everything back", async ({ page }) => {
@@ -52,6 +57,7 @@ test("focus moves to the exit button on entering, and back to the Ambient button
   await setup(page);
   await page.getByRole("button", { name: "Ambient mode" }).click();
   await expect(exitButton(page)).toBeFocused();
+  await wake(page);
   await exitButton(page).click();
   await expect(page.getByRole("button", { name: "Ambient mode" })).toBeFocused();
 });
@@ -59,6 +65,7 @@ test("focus moves to the exit button on entering, and back to the Ambient button
 test("the exit button leaves ambient mode", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "Ambient mode" }).click();
+  await wake(page);
   await exitButton(page).click();
   await expect(dial(page)).toBeVisible();
 });
@@ -100,4 +107,22 @@ test("no serious axe violations in ambient mode", async ({ page }) => {
   const results = await new AxeBuilder({ page }).analyze();
   const severe = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(severe.map((v) => v.id)).toEqual([]);
+});
+
+test("when idle, the first tap only brings the controls back (it doesn't pause the music)", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "a mouse wakes the controls by moving before it can click");
+  await setup(page);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
+  await page.getByRole("button", { name: "Ambient mode" }).click();
+  const bar = page.getByTestId("ambient-bar");
+  await expect(bar).toHaveAttribute("data-idle", "true", { timeout: 6000 });
+
+  const { width, height } = page.viewportSize()!;
+  await page.touchscreen.tap(width / 2, height / 2); // on the visualizer
+  await expect(bar).not.toHaveAttribute("data-idle", "true");
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await wake(page);
+  await exitButton(page).click();
+  await expect(dial(page)).toBeVisible();
 });
