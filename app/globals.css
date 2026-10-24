@@ -5,6 +5,8 @@
   --foreground: hsl(0 0% 98%);
   --muted: hsl(0 0% 63.9%);
   --accent: #ee2647;
+  /* Darker accent shade for filled surfaces carrying foreground text (>= 4.5:1). */
+  --accent-strong: #d91f3c;
 }
 
 @theme inline {
@@ -12,6 +14,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
   --font-sans: var(--font-neue);
 
   --animate-marquee: marquee 25s linear infinite;
@@ -39,4 +42,22 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-neue), Arial, Helvetica, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee2,
+  .animate-pulse {
+    animation: none;
+  }
+  /* The duplicate copies only exist to loop the scroll. */
+  .animate-marquee2,
+  .marquee-dup {
+    display: none;
+  }
 }

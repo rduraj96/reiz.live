@@ -5,7 +5,7 @@ export function StationMarquee({ station }: { station: Station }) {
   const text = (
     <>
       <span className="mx-2">{station.name}</span>
-      <span className="mx-2" aria-hidden="true">
+      <span className="marquee-dup mx-2" aria-hidden="true">
         {station.name}
       </span>
     </>

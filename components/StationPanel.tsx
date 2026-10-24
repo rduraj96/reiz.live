@@ -17,6 +17,12 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "saved", label: "Saved" },
 ];
 
+/** The visible control that opens `tab` (marked with data-panel-opener), for focus return. */
+function visibleOpener(tab: PanelTab): HTMLElement | null {
+  const candidates = document.querySelectorAll<HTMLElement>(`[data-panel-opener~="${tab}"]`);
+  return Array.from(candidates).find((el) => el.getClientRects().length > 0) ?? null;
+}
+
 export function StationPanel() {
   const { open, tab } = usePlayer((s) => s.panel);
   const openPanel = usePlayer((s) => s.openPanel);
@@ -115,7 +121,12 @@ export function StationPanel() {
         <Dialog.Content
           aria-describedby={undefined}
           onOpenAutoFocus={() => {
-            openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            // Safari/Firefox leave activeElement on <body> after a mouse click, so fall back to the opening control.
+            const active = document.activeElement;
+            openerRef.current =
+              active instanceof HTMLElement && active !== document.body && document.contains(active)
+                ? active
+                : visibleOpener(tab);
           }}
           onCloseAutoFocus={(e) => {
             // No Dialog.Trigger (opened via the store), so hand focus back to the opener ourselves.

@@ -53,6 +53,7 @@ function MobileMenu({ onOpen, onAbout }: HeaderProps) {
         aria-label="Menu"
         aria-expanded={open}
         aria-controls="mobile-menu"
+        data-panel-opener="recent saved"
         onClick={() => setOpen((o) => !o)}
         className="size-11 flex items-center justify-center text-foreground cursor-pointer"
       >
@@ -114,25 +115,27 @@ export function Header({ onOpen, onAbout }: HeaderProps) {
       <MobileMenu onOpen={onOpen} onAbout={onAbout} />
       <nav className="hidden md:flex flex-wrap justify-center items-center gap-2 font-medium text-lg md:text-2xl text-foreground">
         <SurpriseButton className={`${navItem} disabled:opacity-50`} />
-        <div className="w-4 h-0.5 bg-gray-200 hidden md:block" />
+        <div className="w-4 h-0.5 bg-foreground hidden md:block" />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={navItem}
+          data-panel-opener="recent"
           onClick={() => onOpen("recent")}
         >
           RECENT
         </motion.button>
-        <div className="w-4 h-0.5 bg-gray-200 hidden md:block" />
+        <div className="w-4 h-0.5 bg-foreground hidden md:block" />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className={navItem}
+          data-panel-opener="saved"
           onClick={() => onOpen("saved")}
         >
           SAVED
         </motion.button>
-        <div className="w-4 h-0.5 bg-white hidden md:block" />
+        <div className="w-4 h-0.5 bg-foreground hidden md:block" />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -141,7 +144,7 @@ export function Header({ onOpen, onAbout }: HeaderProps) {
         >
           ABOUT
         </motion.button>
-        <div className="w-4 h-0.5 bg-gray-200 hidden md:block" />
+        <div className="w-4 h-0.5 bg-foreground hidden md:block" />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

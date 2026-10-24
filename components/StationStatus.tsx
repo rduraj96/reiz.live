@@ -45,9 +45,9 @@ export function StationStatus({
   }
   if (loading) {
     return (
-      <div role="status" aria-label="Loading stations" className="flex gap-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-3 w-16 rounded bg-muted/30 animate-pulse" />
+      <div role="status" aria-label="Loading stations" className="flex w-full max-w-sm flex-col gap-2">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} data-testid="skeleton-row" className="h-8 rounded-lg bg-muted/30 animate-pulse" />
         ))}
       </div>
     );

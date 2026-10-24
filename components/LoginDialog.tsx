@@ -6,7 +6,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import { attachAuth, useAuth } from "@/store/auth";
 
 const field =
-  "w-full bg-transparent border border-muted px-3 h-11 text-foreground placeholder:text-gray-500 focus:outline-none focus:border-accent";
+  "w-full bg-transparent border border-muted px-3 h-11 text-foreground placeholder:text-muted focus:outline-none focus:border-accent";
 
 function LoginForm() {
   const [email, setEmail] = useState("");

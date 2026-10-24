@@ -10,7 +10,7 @@ import { StationMarquee } from "./StationMarquee";
 
 const divider = <div className="h-full bg-muted w-px" />;
 const iconBtn =
-  "size-11 flex items-center justify-center text-gray-200 enabled:hover:text-accent disabled:text-gray-500 transition-colors";
+  "size-11 flex items-center justify-center text-foreground enabled:hover:text-accent disabled:text-muted transition-colors";
 
 function Svg({ children }: { children: React.ReactNode }) {
   return (
@@ -33,11 +33,11 @@ export function PlayBar() {
   return (
     <div className="absolute bottom-0 z-20 h-16 w-full text-foreground text-xl text-center hidden md:flex items-center border-t border-muted">
       <div className="h-full hidden md:flex items-center justify-center px-7 text-2xl">
-        {flag ? <span title={current?.country}>{flag}</span> : <div className="w-6 h-4 bg-gray-700" />}
+        {flag ? <span title={current?.country}>{flag}</span> : <div className="w-6 h-4 bg-muted/40" />}
       </div>
       <div className="hidden md:block h-full">{divider}</div>
-      <div className="min-w-0 flex-1 md:flex-none md:w-72 flex items-center justify-center text-2xl font-light text-gray-200 px-2">
-        {current ? <StationMarquee station={current} /> : <span className="text-gray-500">No station selected</span>}
+      <div className="min-w-0 flex-1 md:flex-none md:w-72 flex items-center justify-center text-2xl font-light text-foreground px-2">
+        {current ? <StationMarquee station={current} /> : <span className="text-muted">No station selected</span>}
       </div>
       {divider}
       <div className="h-full flex items-center justify-center px-2 md:px-7">
@@ -73,7 +73,7 @@ export function PlayBar() {
           {current ? (
             <LiveClock key={current.id} playing={playing} />
           ) : (
-            <span className="text-gray-500">--:--:-- / --:--:--</span>
+            <span className="text-muted">--:--:-- / --:--:--</span>
           )}
         </div>
       </div>
@@ -87,7 +87,8 @@ export function PlayBar() {
       </div>
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">
-        <button type="button" onClick={() => openPanel("browse")} aria-label="Stations" className={iconBtn}>
+        <button type="button" onClick={() => openPanel("browse")} aria-label="Stations"
+          data-panel-opener="browse" className={iconBtn}>
           <Svg>
             <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
           </Svg>

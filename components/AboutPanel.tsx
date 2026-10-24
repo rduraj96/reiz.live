@@ -14,7 +14,7 @@ export function AboutPanel({ open, onOpenChange }: { open: boolean; onOpenChange
               ×
             </Dialog.Close>
           </div>
-          <Dialog.Description className="text-base leading-relaxed text-gray-200">
+          <Dialog.Description className="text-base leading-relaxed text-foreground">
             REIZDIO is free live radio with a 3D visualizer that moves to the music. Stations come from the
             community-run Radio Browser directory; only streams the visualizer can read are listed. Built by Rei
             Duraj.

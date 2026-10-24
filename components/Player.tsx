@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { MotionConfig, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { ChipRow } from "@/components/ChipRow";
 import { CompactPlayBar } from "@/components/CompactPlayBar";
@@ -40,6 +40,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
   const playbackFailed = usePlayer((s) => s.status === "error");
 
   return (
+    <MotionConfig reducedMotion="user">
     <main className="relative w-full min-h-dvh overflow-hidden">
       <motion.div
         initial={{ opacity: 0 }}
@@ -110,5 +111,6 @@ export function Player({ initialStation }: { initialStation?: Station }) {
       <LoginDialog />
       <Toast />
     </main>
+    </MotionConfig>
   );
 }

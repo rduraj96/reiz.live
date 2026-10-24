@@ -7,7 +7,7 @@ import { ShareButton } from "./ShareButton";
 import { StationMarquee } from "./StationMarquee";
 
 const iconBtn =
-  "size-11 shrink-0 flex items-center justify-center text-gray-200 enabled:hover:text-accent disabled:text-gray-500 transition-colors";
+  "size-11 shrink-0 flex items-center justify-center text-foreground enabled:hover:text-accent disabled:text-muted transition-colors";
 
 function Svg({ children }: { children: React.ReactNode }) {
   return (
@@ -28,8 +28,8 @@ export function CompactPlayBar() {
 
   return (
     <div className="md:hidden absolute bottom-0 z-20 h-16 w-full text-foreground flex items-center gap-1 px-2 border-t border-muted">
-      <div className="min-w-0 flex-1 text-xl font-light text-gray-200 px-1">
-        {current ? <StationMarquee station={current} /> : <span className="text-gray-500">No station selected</span>}
+      <div className="min-w-0 flex-1 text-xl font-light text-foreground px-1">
+        {current ? <StationMarquee station={current} /> : <span className="text-muted">No station selected</span>}
       </div>
       <button
         type="button"
@@ -42,7 +42,8 @@ export function CompactPlayBar() {
       </button>
       <HeartButton station={current} className={iconBtn} />
       <ShareButton station={current} className={iconBtn} />
-      <button type="button" onClick={() => openPanel("browse")} aria-label="Stations" className={iconBtn}>
+      <button type="button" onClick={() => openPanel("browse")} aria-label="Stations"
+          data-panel-opener="browse" className={iconBtn}>
         <Svg>
           <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
         </Svg>

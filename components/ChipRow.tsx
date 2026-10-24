@@ -52,7 +52,7 @@ export function ChipRow({ label, options, value, onChange }: ChipRowProps) {
             tabIndex={selected || (selectedIndex < 0 && i === 0) ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={`min-h-11 shrink-0 rounded-full border px-4 text-base whitespace-nowrap transition-colors ${
-              selected ? "border-accent bg-accent text-foreground font-bold" : "border-muted text-gray-200"
+              selected ? "border-accent-strong bg-accent-strong text-foreground font-bold" : "border-muted text-foreground"
             }`}
           >
             {o.label}
