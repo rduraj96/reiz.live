@@ -69,6 +69,19 @@ test("a played station shows up in Recent", async ({ page }) => {
   await expect(page.getByRole("listitem").first()).toContainText("House");
 });
 
+test("tapping the paused current station in Recent resumes it", async ({ page }) => {
+  await setup(page);
+  await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute("aria-valuetext", /^House one/);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "SAVED" }).click();
+  await page.getByRole("tab", { name: "Recent" }).click();
+  await page.getByRole("listitem").first().getByRole("button").first().click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
+});
+
 test("SAVED while logged out asks to log in", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "SAVED" }).click();

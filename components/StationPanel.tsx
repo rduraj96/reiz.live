@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
+import { togglePlay } from "@/hooks/useEngineBridge";
 import { useSearch } from "@/hooks/useSearch";
 import { useRecents } from "@/lib/library/recents";
 import type { Station } from "@/lib/radio/types";
@@ -65,8 +66,11 @@ export function StationPanel() {
    * nothing playing yet) it is primed so the first tap on the blob starts it. The Tuner follows `current` itself.
    */
   function pick(station: Station, stations: Station[]) {
-    const { primed, status, setList, select, prime } = usePlayer.getState();
-    if (!primed && status !== "idle") {
+    const { primed, status, current, setList, select, prime } = usePlayer.getState();
+    if (station.id === current?.id && (status === "paused" || status === "blocked" || status === "idle")) {
+      // select() ignores the current station, so resume it directly (this also loads a primed one).
+      togglePlay();
+    } else if (!primed && status !== "idle") {
       setList(stations);
       select(station);
     } else {
