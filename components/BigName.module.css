@@ -1,0 +1,51 @@
+.bigname {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-size: clamp(56px, 13vw, 168px);
+  color: transparent;
+  -webkit-text-stroke: 1px hsl(0 0% 28%);
+}
+.long {
+  font-size: clamp(40px, 9vw, 120px);
+}
+
+.letter {
+  display: inline-block;
+  transform: translateY(45%) rotate(4deg);
+  opacity: 0;
+  filter: blur(6px);
+  transition:
+    transform 0.7s var(--ease-out),
+    opacity 0.5s,
+    filter 0.5s;
+}
+.in {
+  transform: none;
+  opacity: 1;
+  filter: none;
+}
+.out .letter {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(-20%);
+  transition-duration: 0.25s;
+  transition-delay: 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter,
+  .out .letter {
+    transition: none;
+  }
+}

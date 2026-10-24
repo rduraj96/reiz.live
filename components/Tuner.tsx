@@ -5,6 +5,7 @@ import {
   bandAt,
   buildLayout,
   DIAL_SLOTS,
+  frequencyOf,
   nearestStation,
   OFF_DIAL_GENRE,
   positionOf,
@@ -19,7 +20,11 @@ import styles from "./Tuner.module.css";
 
 type OffDial = { station: Station; label: string };
 type GlideOpts = { fromOffset?: number; prime?: boolean };
-type Handle = { glideTo: (id: string, opts?: GlideOpts) => void; shuffle: () => void };
+type Handle = {
+  glideTo: (id: string, opts?: GlideOpts) => void;
+  shuffle: () => void;
+  frequencyOf: (id: string) => string | null;
+};
 
 /** Glide easing per frame, and the distance under which a glide is done. */
 const EASE = 0.16;
@@ -38,6 +43,10 @@ export const tunerApi = {
   },
   shuffle() {
     handle?.shuffle();
+  },
+  /** Dial frequency of a station, or null when it isn't on the dial (or no Tuner is mounted). */
+  frequencyOf(stationId: string): string | null {
+    return handle?.frequencyOf(stationId) ?? null;
   },
 };
 
@@ -457,7 +466,16 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     const root = rootRef.current;
     if (!root) return;
     root.addEventListener("wheel", engine.onWheel, { passive: false });
-    handle = { glideTo: engine.glideTo, shuffle: engine.shuffle };
+    handle = {
+      glideTo: engine.glideTo,
+      shuffle: engine.shuffle,
+      frequencyOf: (id) => {
+        const { layout } = r.current;
+        // The off-dial band is a stand-in tick, not a real frequency.
+        if (layout.ticks.find((t) => t.stationId === id)?.band === OFF_DIAL_GENRE) return null;
+        return frequencyOf(layout, id);
+      },
+    };
     const mine = handle;
     return () => {
       root.removeEventListener("wheel", engine.onWheel);
