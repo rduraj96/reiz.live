@@ -68,6 +68,22 @@ test("selecting a search result plays it", async ({ page }) => {
   await expect(page.getByText("Lofi Two").first()).toBeVisible();
 });
 
+test("picking a search result keeps Browse's genre list", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Stations" }).click();
+  const search = page.getByRole("searchbox", { name: "Search stations" });
+  await search.fill("lofi");
+  await page.getByRole("listitem").nth(1).getByRole("button").first().click();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
+
+  // Closing the panel cleared the query, so Browse is back on the genre list.
+  await page.getByRole("button", { name: "Stations" }).click();
+  await expect(search).toHaveValue("");
+  await search.fill("");
+  await expect(page.getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("listitem").first()).toContainText("Alpha FM");
+});
+
 test("Surprise me requests a random station for the genre and plays it", async ({ page }) => {
   await setup(page);
   const request = page.waitForRequest((r) => r.url().includes("/api/stations/random?genre=house"));

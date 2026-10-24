@@ -28,6 +28,7 @@ export function StationPanel() {
   const openPanel = usePlayer((s) => s.openPanel);
   const closePanel = usePlayer((s) => s.closePanel);
   const list = usePlayer((s) => s.list);
+  const genreList = usePlayer((s) => s.genreList);
   const current = usePlayer((s) => s.current);
   const status = usePlayer((s) => s.status);
   const recents = useRecents();
@@ -42,6 +43,12 @@ export function StationPanel() {
   const [countries, setCountries] = useState<Country[]>([]);
   const countriesLoaded = useRef(false);
   const search = useSearch(q, country);
+  // A closed panel forgets its search, so reopening shows Browse's genre list.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setQ("");
+  }
   const searching = q.trim().length >= 2;
 
   // Countries are fetched once, the first time the panel opens.
@@ -91,7 +98,7 @@ export function StationPanel() {
 
   function body() {
     if (tab === "browse") {
-      if (!searching) return renderStations(list, "No stations loaded.");
+      if (!searching) return renderStations(genreList, "No stations loaded.");
       if (search.error) return <p className="text-muted">{search.error}</p>;
       if (search.results === null) return <p className="text-muted">Searching…</p>;
       return renderStations(search.results, "No stations found");

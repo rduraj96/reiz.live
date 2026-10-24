@@ -17,7 +17,7 @@ export function useStations() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const { setList, setListError } = usePlayer.getState();
+    const { setList, setGenreList, setListError } = usePlayer.getState();
     const params = new URLSearchParams({ genre, language });
 
     fetch(`/api/stations?${params}`, { signal: controller.signal })
@@ -30,6 +30,7 @@ export function useStations() {
       })
       .then((list) => {
         setListError(null);
+        setGenreList(list);
         setList(list);
         // A fresh list (e.g. after Retry) clears the "nothing played" state.
         if (usePlayer.getState().status === "error") usePlayer.getState().setStatus("idle");
@@ -37,6 +38,7 @@ export function useStations() {
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
+        setGenreList([]);
         setList([]);
         setListError(err instanceof Error ? err.message : UNAVAILABLE);
         setSettledKey(key);

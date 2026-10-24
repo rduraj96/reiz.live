@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Station } from "@/lib/radio/types";
+import { useToast } from "@/store/toast";
 
 export type PlayerStatus = "idle" | "loading" | "playing" | "paused" | "blocked" | "error";
 
@@ -8,7 +9,10 @@ const MAX_FAILED_IN_A_ROW = 5;
 export type PanelTab = "browse" | "recent" | "saved";
 
 type PlayerState = {
+  /** The play queue: next/prev walk it. Whichever tab the last pick came from. */
   list: Station[];
+  /** The genre + language list shown in Browse; only useStations replaces it. */
+  genreList: Station[];
   current: Station | null;
   status: PlayerStatus;
   genre: string;
@@ -24,6 +28,7 @@ type PlayerState = {
 
 type PlayerActions = {
   setList: (list: Station[]) => void;
+  setGenreList: (genreList: Station[]) => void;
   prime: (station: Station) => void;
   select: (station: Station) => void;
   next: () => void;
@@ -52,6 +57,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
 
   return {
     list: [],
+    genreList: [],
     current: null,
     status: "idle",
     genre: "house",
@@ -64,6 +70,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     panel: { open: false, tab: "browse" },
 
     setList: (list) => set({ list, failedInARow: 0 }),
+    setGenreList: (genreList) => set({ genreList }),
     prime: (station) =>
       set({ list: [station], current: station, status: "blocked", primed: true, failedInARow: 0 }),
     select: (station) => {
@@ -73,24 +80,29 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     next: () => step(1),
     prev: () => step(-1),
     markFailed: (station) => {
-      const { list, failedInARow } = get();
+      const { list, genreList, failedInARow } = get();
       const i = list.findIndex((s) => s.id === station.id);
       if (i === -1) return; // already handled (e.g. duplicate failure report)
       const rest = list.filter((s) => s.id !== station.id);
+      // A dead station disappears from Browse too.
+      const browse = genreList.filter((s) => s.id !== station.id);
       const failed = failedInARow + 1;
       if (rest.length === 0 || failed >= MAX_FAILED_IN_A_ROW) {
-        set({ list: rest, failedInARow: failed, status: "error", current: null });
+        set({ list: rest, genreList: browse, failedInARow: failed, status: "error", current: null });
         return;
       }
       // After removal the station that followed `station` sits at its old index.
       const following = rest[i % rest.length];
-      set({ list: rest, failedInARow: failed, current: following, status: "loading", primed: false });
+      set({ list: rest, genreList: browse, failedInARow: failed, current: following, status: "loading", primed: false });
     },
     reportFailure: (station) => {
       const { list, current } = get();
       if (list.some((s) => s.id === station.id)) return get().markFailed(station);
       // The list changed since this station loaded: keep it as current so Play retries.
-      if (current?.id === station.id) set({ status: "idle" });
+      if (current?.id === station.id) {
+        set({ status: "idle" });
+        useToast.getState().show("Couldn't play this station");
+      }
     },
     setGenre: (genre) => set({ genre }),
     setLanguage: (language) => set({ language }),

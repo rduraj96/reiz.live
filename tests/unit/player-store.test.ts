@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { usePlayer } from "@/store/player";
+import { useToast } from "@/store/toast";
 import type { Station } from "@/lib/radio/types";
 
 const st = (id: string): Station => ({
@@ -20,6 +21,7 @@ const ids = (l: Station[]) => l.map((s) => s.id);
 
 beforeEach(() => {
   usePlayer.setState(usePlayer.getInitialState(), true);
+  useToast.setState({ message: null });
 });
 
 describe("player store", () => {
@@ -163,6 +165,32 @@ describe("player store", () => {
     reportFailure(st("a"));
     expect(usePlayer.getState().current?.id).toBe("b");
     expect(ids(usePlayer.getState().list)).toEqual(["b"]);
+  });
+
+  it("setGenreList stores the Browse list without touching the play queue", () => {
+    const { setList, setGenreList } = usePlayer.getState();
+    setList([st("q")]);
+    setGenreList([st("a"), st("b")]);
+    expect(ids(usePlayer.getState().genreList)).toEqual(["a", "b"]);
+    expect(ids(usePlayer.getState().list)).toEqual(["q"]);
+  });
+
+  it("markFailed also drops the dead station from the Browse list", () => {
+    const { setList, setGenreList, select, markFailed } = usePlayer.getState();
+    setGenreList([st("a"), st("b")]);
+    setList([st("a"), st("b")]);
+    select(st("a"));
+    markFailed(st("a"));
+    expect(ids(usePlayer.getState().genreList)).toEqual(["b"]);
+  });
+
+  it("reportFailure for an unlisted station toasts that it couldn't play", () => {
+    const { setList, select, reportFailure } = usePlayer.getState();
+    setList([st("a")]);
+    select(st("a"));
+    setList([st("x")]);
+    reportFailure(st("a"));
+    expect(useToast.getState().message).toBe("Couldn't play this station");
   });
 
   it("reportFailure for a station no longer in the list idles and keeps current", () => {
