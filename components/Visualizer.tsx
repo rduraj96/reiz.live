@@ -3,16 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { usePlayer } from "@/store/player";
-import { useViz } from "@/store/visualizer";
+import { useViz, type VizMode } from "@/store/visualizer";
 import { FIRST_FRAME_EVENT } from "@/visualizer/events";
 import type { Visualizer as Viz } from "@/visualizer/scene";
 
 type Create = typeof import("@/visualizer/scene").createVisualizer;
 
 /** Loads the renderer for a mode: 3D pulls in three.js, 2D is a plain canvas. Both only in the browser, after mount. */
-const loaders: Record<"2d" | "3d", () => Promise<Create>> = {
+const loaders: Record<VizMode, () => Promise<Create>> = {
   "3d": () => import("@/visualizer/scene").then((m) => m.createVisualizer),
   "2d": () => import("@/visualizer/flat").then((m) => m.createFlatVisualizer),
+  ridges: () => import("@/visualizer/ridges").then((m) => m.createRidgesVisualizer),
 };
 
 /** The chrome blob (3D) or its light 2D take, in a centred square. Nothing re-renders per frame. */
@@ -72,9 +73,13 @@ export function Visualizer() {
   }, [fallback]);
 
   return (
-    // Fills its positioned parent (the blob button) and centres the blob square in it.
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center">
-      <div ref={containerRef} className="relative aspect-square w-[var(--blob,min(70vw,360px))]">
+    // Fills the stage: the blob and dots sit in the centred blob square, the ridges span the whole stage.
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] grid place-items-center">
+      <div
+        ref={containerRef}
+        data-viz-layer={mode ?? undefined}
+        className={mode === "ridges" ? "absolute inset-0" : "relative aspect-square w-[var(--blob,min(70vw,360px))]"}
+      >
         {fallback && (
           <div
             data-testid="visualizer-fallback"

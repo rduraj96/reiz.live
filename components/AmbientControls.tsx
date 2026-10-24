@@ -60,7 +60,7 @@ export function AmbientControls() {
       <div
       data-testid="ambient-bar"
       data-idle={idle || undefined}
-      className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 transition-opacity duration-700 data-[idle]:pointer-events-none data-[idle]:opacity-0 motion-reduce:transition-none md:px-8 min-[1440px]:px-16"
+      className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 bg-gradient-to-t from-background via-background/80 to-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10 transition-opacity duration-700 data-[idle]:pointer-events-none data-[idle]:opacity-0 motion-reduce:transition-none md:px-8 min-[1440px]:px-16"
     >
       <p className="min-w-0 truncate text-sm text-muted">
         <span className="text-foreground">{name}</span>

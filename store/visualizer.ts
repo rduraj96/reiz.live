@@ -1,6 +1,12 @@
 import { create } from "zustand";
 
-export type VizMode = "2d" | "3d";
+/** "3d" the chrome blob, "2d" the dot field, "ridges" the signal ridges across the stage. */
+export type VizMode = "2d" | "3d" | "ridges";
+
+/** The switch steps through them in this order. */
+const ORDER: VizMode[] = ["3d", "2d", "ridges"];
+export const nextVizMode = (mode: VizMode): VizMode => ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
+export const VIZ_LABEL: Record<VizMode, string> = { "3d": "3D", "2d": "Dots", ridges: "Lines" };
 
 const KEY = "reizdio:viz";
 
@@ -16,7 +22,7 @@ export function defaultVizMode(): VizMode {
 function readSaved(): VizMode | null {
   try {
     const v = localStorage.getItem(KEY);
-    return v === "2d" || v === "3d" ? v : null;
+    return ORDER.includes(v as VizMode) ? (v as VizMode) : null;
   } catch {
     return null;
   }

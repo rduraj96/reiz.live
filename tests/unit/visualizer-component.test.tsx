@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const viz = { setActive: vi.fn(), setTuning: vi.fn(), dispose: vi.fn() };
 const createVisualizer = vi.fn();
 const createFlatVisualizer = vi.fn();
+const createRidgesVisualizer = vi.fn();
 
 vi.mock("@/visualizer/scene", () => ({ createVisualizer }));
 vi.mock("@/visualizer/flat", () => ({ createFlatVisualizer }));
+vi.mock("@/visualizer/ridges", () => ({ createRidgesVisualizer }));
 vi.mock("@/lib/audio/engine", () => ({ getAudioEngine: () => ({ analyser: null }) }));
 
 import { Visualizer } from "@/components/Visualizer";
@@ -62,6 +64,16 @@ describe("Visualizer", () => {
     act(() => useViz.getState().setMode("2d"));
     await act(() => vi.waitFor(() => expect(createFlatVisualizer).toHaveBeenCalledTimes(1)));
     expect(viz.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs the ridges renderer for Lines, in a layer that fills the stage", async () => {
+    createVisualizer.mockReturnValue(viz);
+    createRidgesVisualizer.mockReturnValue({ ...viz, dispose: vi.fn() });
+    const { container } = render(<Visualizer />);
+    await mounted();
+    act(() => useViz.getState().setMode("ridges"));
+    await act(() => vi.waitFor(() => expect(createRidgesVisualizer).toHaveBeenCalledTimes(1)));
+    expect(container.querySelector("[data-viz-layer='ridges']")).not.toBeNull();
   });
 
   it("falls back to a CSS disc and still announces the first frame when no canvas works", async () => {
