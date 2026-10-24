@@ -10,6 +10,8 @@ export interface AudioEngine {
   /** Dial-tuning static: stream ducks, noise rises. Off fades back (held while a load is pending, up to 3 s). */
   setTuning(on: boolean): void;
   readonly analyser: AnalyserNode | null;
+  /** The playing element, for diagnostics only. */
+  readonly element: HTMLAudioElement | null;
   on(event: AudioEngineEvent, cb: (station: Station) => void): () => void;
 }
 
@@ -224,6 +226,9 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   return {
     get analyser() {
       return analyser;
+    },
+    get element() {
+      return audio;
     },
     load(station) {
       const myToken = ++token;
