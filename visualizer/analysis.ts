@@ -23,7 +23,18 @@ type Internal = {
   peak: number;
   prevBass: number;
   squashVel: number;
+  /** Levelled lowest bands from the previous frame, and the new bass energy that arrived since (spectral flux). */
+  prevLow: Float32Array;
+  flux: number;
+  fluxAvg: number;
 };
+
+/** Bands whose rise counts towards a kick. */
+const LOW_BANDS = 5;
+/** A kick: bass flux at least this, and this many times its own running average. */
+const FLUX_MIN = 0.12;
+const FLUX_RATIO = 2.2;
+const KICK_GAP_S = 0.18;
 
 const internals = new WeakMap<Analysis, Internal>();
 
@@ -40,7 +51,16 @@ export function createAnalysis(rand: () => number = Math.random): Analysis {
     squash: 0,
     flash: 0,
   };
-  internals.set(a, { rand, raw: new Float32Array(BAND_COUNT), peak: 0.4, prevBass: 0, squashVel: 0 });
+  internals.set(a, {
+    rand,
+    raw: new Float32Array(BAND_COUNT),
+    peak: 0.4,
+    prevBass: 0,
+    squashVel: 0,
+    prevLow: new Float32Array(LOW_BANDS),
+    flux: 0,
+    fluxAvg: 0,
+  });
   return a;
 }
 
@@ -68,6 +88,14 @@ function readSpectrum(a: Analysis, s: Internal, freq: Uint8Array, sampleRate: nu
     if (v > max) max = v;
   }
   // level control: normalise to a slow-decaying peak so quiet stations still move
+  // Unsmoothed, so a kick still shows over a bassline that keeps the smoothed bass high. Measured against last frame's
+  // peak: a kick that sets a new peak would otherwise level itself away.
+  s.flux = 0;
+  for (let b = 0; b < LOW_BANDS; b++) {
+    const v = s.raw[b] / s.peak;
+    s.flux += Math.max(0, v - s.prevLow[b]);
+    s.prevLow[b] = v;
+  }
   s.peak = Math.max(max, s.peak * Math.exp(-dt * 0.4), 0.15);
   for (let b = 0; b < BAND_COUNT; b++) {
     const v = Math.pow(Math.max(0, s.raw[b] / s.peak - 0.18) / 0.82, 1.6);
@@ -93,7 +121,11 @@ export function stepAnalysis(a: Analysis, freq: Uint8Array | null, sampleRate: n
   if (!s) throw new Error("stepAnalysis: Analysis was not created by createAnalysis");
 
   if (freq) readSpectrum(a, s, freq, sampleRate, dt);
-  else breathe(a, t);
+  else {
+    breathe(a, t);
+    s.flux = 0;
+    s.prevLow.fill(0);
+  }
 
   a.bass = average(a.bands, 0, 6);
   a.mid = average(a.bands, 8, 20);
@@ -103,7 +135,10 @@ export function stepAnalysis(a: Analysis, freq: Uint8Array | null, sampleRate: n
 
   // kickAge is advanced first so it reads exactly 0 on the frame a kick lands
   a.kickAge += dt;
-  if (a.bass - s.prevBass > 0.12 && a.kickAge > 0.18) {
+  // Live audio: an onset in the bass flux. The preview pulse has no flux, so it keys off its own bass jumps.
+  const onset = freq ? s.flux > Math.max(FLUX_MIN, s.fluxAvg * FLUX_RATIO) : a.bass - s.prevBass > 0.12;
+  s.fluxAvg += (s.flux - s.fluxAvg) * Math.min(1, dt * 3);
+  if (onset && a.kickAge > KICK_GAP_S) {
     a.kickAge = 0;
     a.kickAmp = Math.min(1, a.bass * 1.4);
     const theta = s.rand() * Math.PI * 2;

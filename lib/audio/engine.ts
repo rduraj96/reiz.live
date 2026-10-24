@@ -172,6 +172,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       const source = c.createMediaElementSource(el);
       const node = c.createAnalyser();
       node.fftSize = 512;
+      node.smoothingTimeConstant = 0.5; // crisper than the 0.8 default, so kicks read as onsets
       const stream = c.createGain();
       source.connect(stream);
       stream.connect(node);

@@ -66,6 +66,27 @@ describe("kick detection", () => {
     expect(a.kickAge).toBe(0);
   });
 
+  it("catches kicks over a bassline that keeps the bass high", () => {
+    const a = createAnalysis(seeded(3));
+    let t = run(a, bassy(170), 2); // the bassline alone settles
+    let kicks = 0;
+    for (let beat = 0; beat < 8; beat++) {
+      stepAnalysis(a, bassy(255), SR, DT, t);
+      if (a.kickAge === 0) kicks++;
+      t = run(a, bassy(255), 0.05, t + DT);
+      t = run(a, bassy(170), 0.43, t);
+    }
+    expect(kicks).toBe(8);
+  });
+
+  it("does not fire on a steady loud bassline", () => {
+    const a = createAnalysis(seeded(3));
+    run(a, bassy(200), 1);
+    const before = a.kickAge;
+    run(a, bassy(200), 1);
+    expect(a.kickAge).toBeCloseTo(before + 1, 5);
+  });
+
   it("keeps kickDir a unit vector", () => {
     const a = createAnalysis(seeded(7));
     stepAnalysis(a, flat(255), SR, DT, 0);

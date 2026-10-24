@@ -9,16 +9,21 @@ const BLEED = 0.12;
 /** Half the 3D frame rate: the point of the 2D mode is a light load. */
 const FRAME_MS = 1000 / 30;
 const MAX_DT = 0.08;
-const POINTS = 64;
 const TUNE_UP_RATE = 7;
 const TUNE_DOWN_RATE = 3.5;
-/** The blob's chrome palette, cycled around the rim. */
-const RIM = ["#ff3cc8", "#ffd23c", "#6cff5a", "#3c8cff", "#ff3cc8"];
+/** Dots across the field's diameter. */
+const GRID = 23;
+/** Field radius as a share of the container (the 3D blob is about this size). */
+const FIELD = 0.48;
+const RIPPLE_SPEED = 0.9;
+const RIPPLE_WIDTH = 0.07;
+const RIPPLE_DECAY = 2.2;
+const MAX_RIPPLES = 8;
+const HOT = "#ee2647";
+/** Above what the spectrum alone reaches, so only a kick ripple turns dots red. */
+const HOT_LEVEL = 1;
+const BACKING = "#0a0a0a";
 
-/**
- * A flat Canvas 2D take on the chrome blob: an outline pushed out by the spectrum (lows at the top, highs at the
- * bottom, mirrored left/right), a turning rim gradient over a dark core, at 30 fps. Same contract as the 3D scene.
- */
 export function createFlatVisualizer(
   container: HTMLElement,
   getAnalyser: () => AnalyserNode | null,
@@ -53,8 +58,8 @@ export function createFlatVisualizer(
 
   const analysis = createAnalysis();
   const reader = createSpectrumReader(getAnalyser);
-  const xs = new Float32Array(POINTS);
-  const ys = new Float32Array(POINTS);
+  /** Kick ripples: age in seconds and strength. */
+  const ripples: { age: number; amp: number }[] = [];
   let active = false;
   let tuneTarget = 0;
   let tune = 0;
@@ -65,60 +70,34 @@ export function createFlatVisualizer(
 
   function draw() {
     const c = side / 2;
-    const base = (side / (1 + 2 * BLEED)) * 0.37;
-    const calm = 1 - tune;
-    const breath = 1 + (0.1 * analysis.bass + 0.08 * analysis.squash * calm) * motion;
-
-    for (let i = 0; i < POINTS; i++) {
-      const a = (i / POINTS) * Math.PI * 2;
-      // 0 at the top, 1 at the bottom, the same on both sides.
-      const band = analysis.bands[Math.min(BAND_COUNT - 1, Math.floor(((1 - Math.cos(a)) / 2) * BAND_COUNT))];
-      const wobble =
-        Math.sin(3 * a + t * 1.1) * (0.015 + 0.04 * analysis.mid) + Math.sin(5 * a - t * 1.7) * 0.012 * (1 + analysis.treb);
-      const jitter = tune * 0.05 * (Math.sin(a * 23 + t * 40) + Math.sin(a * 37 - t * 53)) * 0.5;
-      const r = base * (breath + (0.16 * band + wobble) * motion * (1 - 0.6 * tune) + jitter);
-      xs[i] = c + Math.sin(a) * r;
-      ys[i] = c - Math.cos(a) * r;
-    }
-
+    const fieldR = (side / (1 + 2 * BLEED)) * FIELD;
+    const step = (2 * fieldR) / GRID;
+    const quiet = 1 - 0.5 * tune;
     ctx!.clearRect(0, 0, side, side);
+    // A dark disc behind the field, so the big name behind it doesn't show through the gaps (the 3D blob hides it too).
+    ctx!.fillStyle = BACKING;
     ctx!.beginPath();
-    // A smooth closed curve through the midpoints, using the points as control points.
-    ctx!.moveTo((xs[POINTS - 1] + xs[0]) / 2, (ys[POINTS - 1] + ys[0]) / 2);
-    for (let i = 0; i < POINTS; i++) {
-      const j = (i + 1) % POINTS;
-      ctx!.quadraticCurveTo(xs[i], ys[i], (xs[i] + xs[j]) / 2, (ys[i] + ys[j]) / 2);
+    ctx!.arc(c, c, fieldR + step * 0.7, 0, Math.PI * 2);
+    ctx!.fill();
+    for (let yi = 0; yi <= GRID; yi++) {
+      for (let xi = 0; xi <= GRID; xi++) {
+        const x = c - fieldR + xi * step;
+        const y = c - fieldR + yi * step;
+        const d = Math.hypot(x - c, y - c) / fieldR;
+        if (d > 1) continue;
+        // Centre = bass, rim = treble.
+        let v = analysis.bands[Math.min(BAND_COUNT - 1, Math.floor(d * BAND_COUNT))] * 0.95;
+        for (const r of ripples) {
+          v += r.amp * Math.exp(-(((d - r.age * RIPPLE_SPEED) / RIPPLE_WIDTH) ** 2)) * Math.exp(-r.age * RIPPLE_DECAY);
+        }
+        const jitter = tune * (Math.sin(xi * 12.9 + yi * 78.2 + t * 47) * 0.5 + 0.5);
+        v = Math.min(1.15, (v * quiet + jitter * 0.6) * motion + 0.04);
+        ctx!.fillStyle = v > HOT_LEVEL ? HOT : `hsl(0 0% ${35 + v * 60}%)`;
+        ctx!.beginPath();
+        ctx!.arc(x + jitter * step * 0.3, y, step * (0.08 + 0.42 * v), 0, Math.PI * 2);
+        ctx!.fill();
+      }
     }
-    ctx!.closePath();
-
-    const turn = t * 0.35;
-    let rim: CanvasGradient;
-    if (typeof ctx!.createConicGradient === "function") {
-      rim = ctx!.createConicGradient(turn, c, c);
-      RIM.forEach((col, k) => rim.addColorStop(k / (RIM.length - 1), col));
-    } else {
-      rim = ctx!.createLinearGradient(0, 0, side, side);
-      RIM.forEach((col, k) => rim.addColorStop(k / (RIM.length - 1), col));
-    }
-    ctx!.fillStyle = rim;
-    ctx!.fill();
-
-    // Dark core so only the rim shows colour, like the chrome blob; a kick briefly lifts it.
-    const core = ctx!.createRadialGradient(c, c * 1.04, 0, c, c, base * breath);
-    core.addColorStop(0, "rgba(0,0,0,0.97)");
-    core.addColorStop(0.62 - 0.12 * analysis.flash * calm * motion, "rgba(0,0,0,0.9)");
-    core.addColorStop(1, "rgba(0,0,0,0)");
-    ctx!.fillStyle = core;
-    ctx!.fill();
-
-    // A soft specular highlight up and to the left.
-    const hx = c - base * 0.42;
-    const hy = c - base * 0.5;
-    const shine = ctx!.createRadialGradient(hx, hy, 0, hx, hy, base * 0.5);
-    shine.addColorStop(0, `rgba(255,255,255,${0.22 + 0.25 * analysis.flash * calm * motion})`);
-    shine.addColorStop(1, "rgba(255,255,255,0)");
-    ctx!.fillStyle = shine;
-    ctx!.fill();
   }
 
   function frame(now: number) {
@@ -131,6 +110,12 @@ export function createFlatVisualizer(
     const read = reader.read(active, dt);
     stepAnalysis(analysis, read?.freq ?? null, read?.sampleRate ?? 0, dt, t);
     tune += (tuneTarget - tune) * Math.min(1, (tuneTarget > tune ? TUNE_UP_RATE : TUNE_DOWN_RATE) * dt);
+    for (const r of ripples) r.age += dt;
+    while (ripples.length && ripples[0].age * RIPPLE_SPEED > 1.2) ripples.shift();
+    if (analysis.kickAge === 0 && !opts.reducedMotion) {
+      ripples.push({ age: 0, amp: analysis.kickAmp * (1 - tune) });
+      if (ripples.length > MAX_RIPPLES) ripples.shift();
+    }
     draw();
 
     if (!announced) {
