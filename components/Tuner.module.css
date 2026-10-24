@@ -26,12 +26,15 @@
   will-change: transform;
 }
 
-/* Minor scale ticks every 12 px across the whole dial. */
+/* Minor scale ticks every 12 px across the whole dial: one 12 px tile, repeated. (A repeating-linear-gradient across
+   this very wide element renders as grey blocks in Safari.) */
 .scale {
   position: absolute;
   bottom: 22px;
   height: 10px;
-  background: repeating-linear-gradient(90deg, hsl(0 0% 22%) 0 1px, transparent 1px 12px);
+  background-image: linear-gradient(90deg, hsl(0 0% 22%) 1px, transparent 1px);
+  background-size: 12px 100%;
+  background-repeat: repeat-x;
 }
 
 .label {

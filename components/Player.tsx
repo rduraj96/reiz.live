@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AboutPanel } from "@/components/AboutPanel";
-import { AudioDebug } from "@/components/AudioDebug";
 import { BigName } from "@/components/BigName";
 import { Intro } from "@/components/Intro";
 import { GenreStrip } from "@/components/GenreStrip";
@@ -84,7 +83,6 @@ export function Player({ initialStation }: { initialStation?: Station }) {
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
       <Toast />
-      <AudioDebug />
       <Intro />
     </div>
   );

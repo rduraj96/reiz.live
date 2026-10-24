@@ -11,12 +11,8 @@ export interface AudioEngine {
   /** Dial-tuning static: stream ducks, noise rises. Off fades back (held while a load is pending, up to 3 s). */
   setTuning(on: boolean): void;
   readonly analyser: AnalyserNode | null;
-  /** The playing element, for diagnostics only. */
-  readonly element: HTMLAudioElement | null;
-  /** The silent second stream feeding the visualizer where Web Audio hears nothing (iOS), for diagnostics only. */
+  /** The silent second stream feeding the visualizer where Web Audio hears nothing (iOS); null until needed. */
   readonly tap: StreamTap | null;
-  /** Diagnostics: act as if Web Audio can't hear the stream, so the tap runs here too (`?debug=tap`). */
-  forceTap(): void;
   on(event: AudioEngineEvent, cb: (station: Station) => void): () => void;
 }
 
@@ -82,7 +78,6 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   let probeData = new Uint8Array(0);
   let deafFor = 0;
   let deaf = false;
-  let forcedDeaf = false;
   let tap: StreamTap | null = null;
 
   function applyGains() {
@@ -199,7 +194,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       }
       if (heard) {
         deafFor = 0;
-        deaf = forcedDeaf;
+        deaf = false;
       } else if ((deafFor += PROBE_MS) >= DEAF_AFTER_MS) deaf = true;
     } else deafFor = 0;
 
@@ -285,15 +280,8 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     get analyser() {
       return deaf && tap?.running ? tap.analyser : analyser;
     },
-    get element() {
-      return audio;
-    },
     get tap() {
       return tap;
-    },
-    forceTap() {
-      forcedDeaf = true;
-      deaf = true;
     },
     load(station) {
       const myToken = ++token;
