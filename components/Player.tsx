@@ -13,6 +13,7 @@ import { Tuner } from "@/components/Tuner";
 import { Visualizer } from "@/components/Visualizer";
 import { useDialBands } from "@/hooks/useDialBands";
 import { togglePlay, useEngineBridge } from "@/hooks/useEngineBridge";
+import { useReadoutState } from "@/hooks/useReadoutState";
 import type { Station } from "@/lib/radio/types";
 import { usePlayer } from "@/store/player";
 
@@ -50,6 +51,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
   }, [initialStation]);
   useEngineBridge();
   useDialBands();
+  const readout = useReadoutState();
 
   const openPanel = usePlayer((s) => s.openPanel);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -66,7 +68,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
           <BigName />
           <BlobButton />
         </div>
-        <Readout />
+        <Readout {...readout} />
         <Tuner offDial={initialStation ? { station: initialStation, label: "Shared" } : undefined} />
       </main>
 
