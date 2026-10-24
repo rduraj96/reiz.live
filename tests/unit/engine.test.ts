@@ -394,4 +394,44 @@ describe("audio engine: tuning static", () => {
     audio.dispatchEvent(new Event("playing"));
     expect(lastTarget(1)).toBe(0.45);
   });
+
+  it("static is silent while muted", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.setMuted(true);
+    engine.setTuning(true);
+    expect(lastTarget(1)).toBe(0);
+    engine.setMuted(false);
+    expect(lastTarget(1)).toBe(0.45);
+  });
+
+  it("static scales with volume", () => {
+    const { engine, lastTarget } = playingOn();
+    engine.setVolume(0.5);
+    engine.setTuning(true);
+    expect(lastTarget(1)).toBeCloseTo(0.225);
+    engine.setVolume(0.1);
+    expect(lastTarget(1)).toBeCloseTo(0.045);
+  });
+
+  it("static is silent while blocked", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    t.engine.setTuning(true);
+    const p = t.engine.load(st("a"));
+    t.plays[0].reject(domErr("NotAllowedError"));
+    await p;
+    expect(t.lastTarget(1)).toBe(0);
+  });
+
+  it("pausing during a hold clears it; static stays 0", () => {
+    const { engine, lastTarget, targets } = playingOn();
+    engine.setTuning(true);
+    void engine.load(st("b"));
+    engine.setTuning(false);
+    engine.pause();
+    const n = targets(1).length;
+    vi.advanceTimersByTime(3_000);
+    expect(lastTarget(1)).toBe(0);
+    expect(targets(1).length).toBe(n);
+  });
 });

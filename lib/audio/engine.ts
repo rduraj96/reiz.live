@@ -74,7 +74,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     const noisy = tuning || holding;
     const t = ctx.currentTime;
     streamGain.gain.setTargetAtTime(noisy ? STREAM_TUNING_GAIN : 1, t, GAIN_TIME_CONSTANT);
-    staticGain.gain.setTargetAtTime(noisy && !paused ? STATIC_TUNING_GAIN : 0, t, GAIN_TIME_CONSTANT);
+    staticGain.gain.setTargetAtTime(noisy && !paused && !muted ? STATIC_TUNING_GAIN * volume : 0, t, GAIN_TIME_CONSTANT);
   }
 
   function endHold() {
@@ -216,7 +216,9 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       if (name === "NotAllowedError") {
         // Waiting for a tap is not a stall.
         clearStall();
+        paused = true;
         settlePending();
+        applyGains();
         emit("blocked", station);
       } else emitFailed(myToken, station);
     }
@@ -246,10 +248,12 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     setVolume(v) {
       volume = Math.min(1, Math.max(0, v));
       if (audio) audio.volume = volume;
+      applyGains();
     },
     setMuted(m) {
       muted = m;
       if (audio) audio.muted = m;
+      applyGains();
     },
     setTuning(on) {
       const was = tuning;
