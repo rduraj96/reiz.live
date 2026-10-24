@@ -12,6 +12,9 @@ export interface AudioEngine {
   on(event: AudioEngineEvent, cb: (station: Station) => void): () => void;
 }
 
+/** A load that hasn't reached `playing`, or sits in `waiting`, this long is treated as dead. */
+export const STALL_TIMEOUT_MS = 15_000;
+
 export type AudioEngineDeps = {
   createAudio?: () => HTMLAudioElement;
   createContext?: () => AudioContext;
@@ -45,12 +48,39 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   let failedToken = 0;
   let volume = 1;
   let muted = false;
+  // `paused` was already emitted for the current load: the element's own pause event must not repeat it.
+  let pausedEmitted = false;
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearStall() {
+    if (stallTimer !== null) clearTimeout(stallTimer);
+    stallTimer = null;
+  }
+
+  // Armed when playback starts and on `waiting`; only `playing` (or pause/supersede) disarms it.
+  function armStall() {
+    if (stallTimer !== null || !current) return;
+    const myToken = token;
+    const station = current;
+    stallTimer = setTimeout(() => {
+      stallTimer = null;
+      if (myToken === token) emitFailed(myToken, station);
+    }, STALL_TIMEOUT_MS);
+  }
 
   // A dead source fires `error` and rejects play(); report it once per load.
   function emitFailed(forToken: number, station: Station) {
+    clearStall();
     if (failedToken === forToken) return;
     failedToken = forToken;
     emit("failed", station);
+  }
+
+  function emitPaused() {
+    clearStall();
+    if (pausedEmitted || !current) return;
+    pausedEmitted = true;
+    emit("paused", current);
   }
 
   function ensureAudio(): HTMLAudioElement {
@@ -61,10 +91,21 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     el.muted = muted;
     // Events always describe the current load: setting a new src replaces the old one.
     el.addEventListener("playing", () => {
+      clearStall();
       if (current) emit("playing", current);
     });
+    el.addEventListener("waiting", armStall);
     el.addEventListener("error", () => {
       if (current) emitFailed(token, current);
+    });
+    // A live stream that ends is a dead stream.
+    el.addEventListener("ended", () => {
+      if (current) emitFailed(token, current);
+    });
+    // Paused from outside the engine (OS media controls, headphones unplugged, ...).
+    // A stale event from a superseded load arrives after play() un-paused the element: ignore it.
+    el.addEventListener("pause", () => {
+      if (el.paused) emitPaused();
     });
     audio = el;
     return el;
@@ -89,6 +130,8 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
 
   async function start(myToken: number, station: Station): Promise<void> {
     const el = ensureAudio();
+    pausedEmitted = false;
+    armStall();
     try {
       // Kick off resume synchronously so it stays inside the user gesture.
       ctx?.resume().catch(() => {});
@@ -97,8 +140,11 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       if (myToken !== token) return;
       const name = err instanceof DOMException ? err.name : "";
       if (name === "AbortError") return;
-      if (name === "NotAllowedError") emit("blocked", station);
-      else emitFailed(myToken, station);
+      if (name === "NotAllowedError") {
+        // Waiting for a tap is not a stall.
+        clearStall();
+        emit("blocked", station);
+      } else emitFailed(myToken, station);
     }
   }
 
@@ -108,6 +154,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     },
     load(station) {
       const myToken = ++token;
+      clearStall();
       current = station;
       const el = ensureAudio();
       ensureGraph(el);
@@ -120,7 +167,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     },
     pause() {
       audio?.pause();
-      if (current) emit("paused", current);
+      emitPaused();
     },
     setVolume(v) {
       volume = Math.min(1, Math.max(0, v));

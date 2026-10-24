@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAudioEngine } from "@/lib/audio/engine";
 import type { Station } from "@/lib/radio/types";
 
@@ -24,8 +24,12 @@ function setup() {
     crossOrigin: null as string | null,
     volume: 1,
     muted: false,
-    pause: vi.fn(),
+    paused: true,
+    pause: vi.fn(() => {
+      audio.paused = true;
+    }),
     play: vi.fn(() => {
+      audio.paused = false;
       return new Promise<void>((resolve, reject) => {
         plays.push({ src: audio.src, resolve, reject });
       });
@@ -176,5 +180,114 @@ describe("audio engine", () => {
     expect(audio.src).toBe("https://example.com/a");
     expect(audio.volume).toBe(0.3);
     expect(audio.muted).toBe(true);
+  });
+});
+
+describe("audio engine: element events and stall timeout", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function started() {
+    vi.useFakeTimers();
+    const t = setup();
+    const events = { playing: vi.fn(), paused: vi.fn(), failed: vi.fn(), blocked: vi.fn() };
+    for (const [name, cb] of Object.entries(events)) t.engine.on(name as keyof typeof events, cb);
+    void t.engine.load(st("a"));
+    return { ...t, events };
+  }
+
+  it("an external pause (e.g. OS media control) emits paused", () => {
+    const { audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    audio.paused = true;
+    audio.dispatchEvent(new Event("pause"));
+    expect(events.paused).toHaveBeenCalledTimes(1);
+    expect(events.paused.mock.calls[0][0].id).toBe("a");
+  });
+
+  it("engine.pause() and the element's resulting pause event emit paused once", () => {
+    const { engine, audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    engine.pause();
+    audio.dispatchEvent(new Event("pause"));
+    expect(events.paused).toHaveBeenCalledTimes(1);
+  });
+
+  it("a stale pause event after a new load started is ignored", () => {
+    const { engine, audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    void engine.load(st("b")); // play() leaves the element un-paused
+    audio.dispatchEvent(new Event("pause"));
+    expect(events.paused).not.toHaveBeenCalled();
+  });
+
+  it("ended emits failed: a live stream that ends is dead", () => {
+    const { audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    audio.dispatchEvent(new Event("ended"));
+    expect(events.failed).toHaveBeenCalledTimes(1);
+    expect(events.failed.mock.calls[0][0].id).toBe("a");
+  });
+
+  it("no playing within 15 s of load emits failed once", () => {
+    const { events } = started();
+    vi.advanceTimersByTime(14_999);
+    expect(events.failed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(events.failed).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_000);
+    expect(events.failed).toHaveBeenCalledTimes(1);
+  });
+
+  it("playing at 14 s does not fail", () => {
+    const { audio, events } = started();
+    vi.advanceTimersByTime(14_000);
+    audio.dispatchEvent(new Event("playing"));
+    vi.advanceTimersByTime(60_000);
+    expect(events.failed).not.toHaveBeenCalled();
+  });
+
+  it("waiting then playing within 15 s does not fail", () => {
+    const { audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    audio.dispatchEvent(new Event("waiting"));
+    vi.advanceTimersByTime(10_000);
+    audio.dispatchEvent(new Event("playing"));
+    vi.advanceTimersByTime(60_000);
+    expect(events.failed).not.toHaveBeenCalled();
+  });
+
+  it("waiting for 15 s emits failed", () => {
+    const { audio, events } = started();
+    audio.dispatchEvent(new Event("playing"));
+    vi.advanceTimersByTime(30_000);
+    audio.dispatchEvent(new Event("waiting"));
+    vi.advanceTimersByTime(15_000);
+    expect(events.failed).toHaveBeenCalledTimes(1);
+  });
+
+  it("a superseded load's timer never fires", () => {
+    const { engine, audio, events } = started();
+    vi.advanceTimersByTime(10_000);
+    void engine.load(st("b"));
+    audio.dispatchEvent(new Event("playing"));
+    vi.advanceTimersByTime(60_000);
+    expect(events.failed).not.toHaveBeenCalled();
+  });
+
+  it("pausing before playing clears the stall timer", () => {
+    const { engine, events } = started();
+    engine.pause();
+    vi.advanceTimersByTime(60_000);
+    expect(events.failed).not.toHaveBeenCalled();
+  });
+
+  it("an autoplay block clears the stall timer (blocked is not bad)", async () => {
+    const { plays, events } = started();
+    plays[0].reject(domErr("NotAllowedError"));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(events.blocked).toHaveBeenCalledTimes(1);
+    expect(events.failed).not.toHaveBeenCalled();
   });
 });
