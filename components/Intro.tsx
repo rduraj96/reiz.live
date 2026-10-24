@@ -51,8 +51,11 @@ function glideWhenReady(id: string, fromOffset: number | undefined, deadline = p
 }
 
 /** Frequency loader: the needle sweeps 87.5 to 108.0 MHz as real loading progresses, then the screen splits open. */
-export function Intro() {
+export function Intro({ onDone }: { onDone?: () => void } = {}) {
   const [shown, setShown] = useState(!introDone);
+  useEffect(() => {
+    if (!shown) onDone?.();
+  }, [shown, onDone]);
   const layerRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLSpanElement>(null);
   const capRef = useRef<HTMLSpanElement>(null);

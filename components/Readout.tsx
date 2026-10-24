@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useStationMeta } from "@/hooks/useStationMeta";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
@@ -59,11 +60,10 @@ function useRolledFrequency(id: string | null) {
 export function Readout({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   const current = usePlayer((s) => s.current);
   const tuning = usePlayer((s) => s.tuning);
+  const meta = useStationMeta();
   const { numRef, sepRef } = useRolledFrequency(current?.id ?? null);
 
-  // On the dial, the band it sits in; off it (shared, searched), its first tag.
-  const genre = current ? (tunerApi.bandLabelOf(current.id) ?? current.tags[0]) : undefined;
-  const rest = current ? [genre?.toUpperCase(), current.countryCode.toUpperCase()].filter(Boolean) : [];
+  const rest = meta ? [meta.genre, meta.cc].filter(Boolean) : [];
 
   return (
     <div className="grid grid-cols-[1fr_auto] items-end gap-3 px-5 pb-2.5 md:px-8 md:pb-3.5 min-[1440px]:px-16">

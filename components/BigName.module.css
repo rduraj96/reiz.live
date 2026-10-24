@@ -49,3 +49,175 @@
     transition: none;
   }
 }
+
+/* ── Alternative treatments (ticker, part, orbit, stack): a full layer over the centre row, behind the blob ── */
+.alt {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --blob: min(70vw, 360px);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  text-transform: uppercase;
+}
+
+/* Ticker: a band scrolling left continuously; its duration is set from its width (~70 px/s). */
+.band {
+  justify-self: start;
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerScroll 40s linear infinite;
+  opacity: 0;
+  filter: blur(8px);
+  transition:
+    opacity 0.5s,
+    filter 0.5s;
+}
+.band.in {
+  opacity: 1;
+  filter: none;
+}
+.ticker.out .band {
+  opacity: 0;
+  filter: blur(8px);
+  transition-duration: 0.3s;
+}
+.item {
+  font-weight: 800;
+  font-size: clamp(64px, 12vw, 150px);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  padding-right: 0.5em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px hsl(0 0% 62%);
+}
+.item i {
+  font-style: normal;
+  color: var(--accent);
+  -webkit-text-stroke: 0;
+  margin: 0 0.35em;
+  font-size: 0.4em;
+  vertical-align: middle;
+}
+@keyframes tickerScroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Part: two solid halves; the gap between them opens to clear the blob. Font size is fitted in JS. */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.half {
+  flex: none;
+  display: flex;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: clamp(40px, 8.5vw, 120px);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--foreground);
+}
+.gap {
+  flex: none;
+  width: 0;
+  transition: width 0.9s var(--ease-out);
+}
+.open .gap {
+  width: calc(var(--blob) * 1.12);
+  transition-delay: 0.25s;
+}
+.part .letter {
+  transform: translateY(40%);
+}
+.part .letter.in {
+  transform: none;
+}
+
+/* Orbit: a ring of text around the blob, turning once every 26 s. */
+.orbit svg {
+  width: calc(var(--blob) * 1.55);
+  height: calc(var(--blob) * 1.55);
+  flex: none;
+  overflow: visible;
+  animation: orbitSpin 26s linear infinite;
+}
+.orbit text {
+  font-weight: 700;
+  font-size: 15.5px;
+  letter-spacing: 0.32em;
+  fill: var(--foreground);
+}
+.orbit .f {
+  fill: var(--accent);
+}
+.fade {
+  transition: opacity 0.35s;
+}
+.fade.hide {
+  opacity: 0;
+}
+@keyframes orbitSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Stack: the name over the blob, at the top of the centre row; the row is padded so the blob sits below it. */
+.stack {
+  place-items: start center;
+  padding-top: 16px;
+}
+.stackBlock {
+  max-width: 100%;
+  text-align: center;
+}
+.stackName {
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: clamp(30px, 6vw, 72px);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  padding: 0 16px;
+  color: var(--foreground);
+}
+.meta {
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.3s;
+}
+.meta b {
+  color: var(--accent);
+  font-weight: 400;
+}
+.stack.out .meta {
+  opacity: 0;
+}
+/* Room above the blob: the stack block's height (name + meta + padding). */
+.stackRow {
+  padding-top: calc(clamp(30px, 6vw, 72px) * 0.95 + 56px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band,
+  .orbit svg {
+    animation: none;
+  }
+  .band,
+  .gap,
+  .fade,
+  .meta {
+    transition: none;
+  }
+}
