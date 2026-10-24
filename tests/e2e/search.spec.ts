@@ -88,19 +88,13 @@ test.fixme("picking a search result keeps Browse's genre list", async ({ page })
   await expect(page.getByRole("listitem").first()).toContainText("Alpha FM");
 });
 
-// fixme(Task 10: the header SurpriseButton was removed; "Surprise me" is now the dial shuffle).
-test.fixme("Surprise me requests a random station for the genre and plays it", async ({ page }) => {
+test("Surprise me spins the dial to a loaded station and plays it", async ({ page }) => {
   await setup(page);
-  const request = page.waitForRequest((r) => r.url().includes("/api/stations/random?genre=house"));
+  const dial = page.getByRole("slider", { name: "Tune stations" });
+  // This spec's mock returns the same two stations for every genre, so only the station name is asserted.
+  await expect(dial).toHaveAttribute("aria-valuetext", /^(Alpha|Bravo) FM, /);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Surprise me" }).click();
-  await request;
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("Random FM").first()).toBeVisible();
-});
-
-// fixme(Task 10: the header SurpriseButton was removed; "Surprise me" is now the dial shuffle).
-test.fixme("a 404 from random shows a toast", async ({ page }) => {
-  await setup(page, { status: 404, body: { error: "No playable station found" } });
-  await page.getByRole("button", { name: "Surprise me" }).click();
-  await expect(page.getByRole("status")).toHaveText("Nothing playable in this genre right now");
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(dial).toHaveAttribute("aria-valuetext", /^(Alpha|Bravo) FM, /);
 });

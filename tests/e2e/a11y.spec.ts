@@ -45,10 +45,11 @@ async function expectNoSevereViolations(page: Page) {
   ).toEqual([]);
 }
 
-// Exact number of real tab stops in each layout (disabled controls are skipped).
-// Desktop: 5 header links, the Language and Genre pickers (one stop each), Stations.
-const DESKTOP_TAB_STOPS = 8;
-const MOBILE_TAB_STOPS = 4;
+// Exact number of real tab stops (disabled controls are skipped); one layout at every width:
+// LanguageSwitch, SEARCH, SAVED, INFO, the blob button, shuffle and the dial. Heart and share are
+// disabled until a station is tuned, and the language options stay hidden while the popover is closed.
+const DESKTOP_TAB_STOPS = 7;
+const MOBILE_TAB_STOPS = 7;
 
 async function focusRing(page: Page) {
   return page.evaluate(() => {
@@ -87,8 +88,7 @@ test.describe("desktop", () => {
     await expectNoSevereViolations(page);
   });
 
-  // fixme(Task 13: tab-stop counts are those of the removed play-bar/picker layout).
-  test.fixme("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page }) => {
     await setup(page);
     await expectFocusRings(page, DESKTOP_TAB_STOPS);
   });
@@ -124,8 +124,7 @@ test.describe("390px", () => {
     await expectNoSevereViolations(page);
   });
 
-  // fixme(Task 13: tab-stop counts are those of the removed play-bar/picker layout).
-  test.fixme("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page }) => {
     await setup(page);
     await expectFocusRings(page, MOBILE_TAB_STOPS);
   });
