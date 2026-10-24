@@ -26,6 +26,7 @@ type Handle = {
   shuffle: () => void;
   tuneNearest: () => void;
   frequencyOf: (id: string) => string | null;
+  bandLabelOf: (id: string) => string | null;
 };
 
 /** Glide easing per frame, and the distance under which a glide is done. */
@@ -53,6 +54,10 @@ export const tunerApi = {
   /** Dial frequency of a station, or null when it isn't on the dial (or no Tuner is mounted). */
   frequencyOf(stationId: string): string | null {
     return handle?.frequencyOf(stationId) ?? null;
+  },
+  /** Label of the genre band a station sits in, or null when it isn't on a band (or no Tuner is mounted). */
+  bandLabelOf(stationId: string): string | null {
+    return handle?.bandLabelOf(stationId) ?? null;
   },
 };
 
@@ -486,6 +491,8 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       shuffle: engine.shuffle,
       tuneNearest: engine.tuneNearest,
       frequencyOf: (id) => frequencyOf(r.current.layout, id),
+      // Read from the store, not the synced refs: callers read it while rendering, before this Tuner's layout effect.
+      bandLabelOf: (id) => useDial.getState().bands.find((b) => isOnBand([b], id))?.label ?? null,
     };
     const mine = handle;
     return () => {

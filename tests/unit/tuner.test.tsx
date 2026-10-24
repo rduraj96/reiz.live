@@ -280,6 +280,14 @@ describe("Tuner", () => {
     expect(spies.setTuning).not.toHaveBeenCalled();
   });
 
+  it("bandLabelOf gives an on-dial station's band label, null off the dial", () => {
+    usePlayer.setState({ current: st("x", "Shared One") });
+    render(<Tuner />);
+    expect(tunerApi.bandLabelOf("t2")).toBe("Techno");
+    expect(tunerApi.bandLabelOf("x")).toBeNull();
+    expect(tunerApi.bandLabelOf("nope")).toBeNull();
+  });
+
   it("shuffle glides to a random loaded station and selects it", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     render(<Tuner />);

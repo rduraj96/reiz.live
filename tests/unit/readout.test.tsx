@@ -65,6 +65,22 @@ describe("Readout", () => {
     expect(freqLine().textContent!.split(" · ")[0]).toBe("98.3");
   });
 
+  it("names the dial band of an on-dial station rather than its first tag", () => {
+    reduced = true;
+    vi.spyOn(tunerApi, "bandLabelOf").mockImplementation((id) => (id === "h1" ? "Deep House" : null));
+    usePlayer.setState({ current: station({ tags: ["electronic", "house"] }) });
+    render(<Readout />);
+    expect(freqLine()).toHaveTextContent("98.3 · DEEP HOUSE · NL");
+  });
+
+  it("falls back to the first tag off the dial", () => {
+    reduced = true;
+    vi.spyOn(tunerApi, "bandLabelOf").mockReturnValue(null);
+    usePlayer.setState({ current: station({ id: "x", tags: ["electronic"] }) });
+    render(<Readout />);
+    expect(freqLine().textContent).toBe("ELECTRONIC · NL");
+  });
+
   it("lands immediately with reduced motion", () => {
     reduced = true;
     render(<Readout />);
