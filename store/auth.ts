@@ -9,7 +9,6 @@ type AuthState = {
   saved: Station[];
   pendingSave: Station | null;
   loginOpen: boolean;
-  error: string | null;
 };
 
 type AuthActions = {
@@ -30,7 +29,6 @@ export const useAuth = create<AuthState & AuthActions>()((set, get) => ({
   saved: [],
   pendingSave: null,
   loginOpen: false,
-  error: null,
 
   openLogin: (pending) => set({ loginOpen: true, pendingSave: pending ?? null }),
   closeLogin: () => set({ loginOpen: false, pendingSave: null }),
@@ -43,20 +41,15 @@ export const useAuth = create<AuthState & AuthActions>()((set, get) => ({
       return;
     }
     const wasSaved = saved.some((x) => x.id === s.id);
-    set({
-      error: null,
-      saved: wasSaved ? saved.filter((x) => x.id !== s.id) : [s, ...saved],
-    });
+    set({ saved: wasSaved ? saved.filter((x) => x.id !== s.id) : [s, ...saved] });
     try {
       if (wasSaved) await unsaveStation(sb, user.id, s.id);
       else await saveStation(sb, user.id, s);
     } catch (e) {
       // Roll back only this station so concurrent toggles are not clobbered.
       const rest = get().saved.filter((x) => x.id !== s.id);
-      set({
-        saved: wasSaved ? [s, ...rest] : rest,
-        error: `Could not ${wasSaved ? "remove" : "save"} station: ${message(e)}`,
-      });
+      set({ saved: wasSaved ? [s, ...rest] : rest });
+      useToast.getState().show(`Could not ${wasSaved ? "remove" : "save"} station: ${message(e)}`);
     }
   },
 }));
@@ -94,7 +87,7 @@ async function processAuthEvent(event: string, session: Session | null): Promise
   try {
     useAuth.setState({ saved: await listSaved(sb) });
   } catch (e) {
-    useAuth.setState({ error: `Could not load saved stations: ${message(e)}` });
+    useToast.getState().show(`Could not load saved stations: ${message(e)}`);
   }
   if (!pending) return;
   const { isSaved, toggleSaved } = useAuth.getState();

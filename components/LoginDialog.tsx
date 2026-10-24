@@ -86,34 +86,26 @@ export function LoginDialog() {
   const open = useAuth((s) => s.loginOpen);
   const closeLogin = useAuth((s) => s.closeLogin);
   const user = useAuth((s) => s.user);
-  const error = useAuth((s) => s.error);
   const available = getSupabase() !== null;
 
   useEffect(() => attachAuth(getSupabase()), []);
 
   return (
-    <>
-      {error && (
-        <p role="status" className="fixed bottom-20 left-1/2 z-30 -translate-x-1/2 bg-background px-4 py-2 text-base text-accent">
-          {error}
-        </p>
-      )}
-      <Dialog.Root open={open} onOpenChange={(o) => !o && closeLogin()}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/70" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 border border-muted bg-background p-6 text-foreground">
-            <Dialog.Title className="text-2xl font-light">{user ? "Signed in" : "Sign in to save"}</Dialog.Title>
-            <Dialog.Description className="mb-4 text-base text-muted">
-              Saved stations follow your account.
-            </Dialog.Description>
-            {available ? (
-              <LoginForm />
-            ) : (
-              <p className="text-base text-muted">Login is unavailable right now</p>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </>
+    <Dialog.Root open={open} onOpenChange={(o) => !o && closeLogin()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/70" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 border border-muted bg-background p-6 text-foreground">
+          <Dialog.Title className="text-2xl font-light">{user ? "Signed in" : "Sign in to save"}</Dialog.Title>
+          <Dialog.Description className="mb-4 text-base text-muted">
+            Saved stations follow your account.
+          </Dialog.Description>
+          {available ? (
+            <LoginForm />
+          ) : (
+            <p className="text-base text-muted">Login is unavailable right now</p>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

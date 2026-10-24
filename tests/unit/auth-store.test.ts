@@ -16,7 +16,8 @@ function setup(result?: Parameters<typeof fakeSb>[0]) {
 
 beforeEach(() => {
   attachAuth(null);
-  useAuth.setState({ user: null, saved: [], pendingSave: null, loginOpen: false, error: null });
+  useAuth.setState({ user: null, saved: [], pendingSave: null, loginOpen: false });
+  useToast.setState({ message: null });
 });
 
 describe("auth store", () => {
@@ -71,12 +72,19 @@ describe("auth store", () => {
     expect(calls).toContainEqual(["eq", "station_id", "a"]);
   });
 
-  it("a failed save rolls back and sets an error", async () => {
+  it("a failed save rolls back and toasts the error", async () => {
     setup({ data: null, error: { message: "denied" } as never });
     useAuth.setState({ user, saved: [st("x")] });
     await useAuth.getState().toggleSaved(st("a"));
     expect(useAuth.getState().saved.map((s) => s.id)).toEqual(["x"]);
-    expect(useAuth.getState().error).toBe("Could not save station: denied");
+    expect(useToast.getState().message).toBe("Could not save station: denied");
+  });
+
+  it("a failed saved-list load on sign-in toasts the error", async () => {
+    setup({ data: null, error: { message: "offline" } as never });
+    await handleAuthEvent("SIGNED_IN", session);
+    expect(useAuth.getState().user).toBe(user);
+    expect(useToast.getState().message).toBe("Could not load saved stations: offline");
   });
 });
 
