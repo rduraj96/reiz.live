@@ -5,9 +5,9 @@ import { introTarget, stepIntro } from "@/lib/intro/progress";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 import { tunerApi } from "@/components/Tuner";
+import { FIRST_FRAME_EVENT } from "@/visualizer/events";
 import styles from "./Intro.module.css";
 
-const FIRST_FRAME_EVENT = "visualizer-first-frame";
 const FREQ_MIN = 87.5;
 const FREQ_SPAN = 20.5;
 const HOLD_MS = 350;

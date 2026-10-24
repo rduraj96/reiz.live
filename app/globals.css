@@ -16,26 +16,6 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --font-sans: var(--font-neue);
-
-  --animate-marquee: marquee 25s linear infinite;
-  --animate-marquee2: marquee2 25s linear infinite;
-
-  @keyframes marquee {
-    0% {
-      transform: translateX(0%);
-    }
-    100% {
-      transform: translateX(-100%);
-    }
-  }
-  @keyframes marquee2 {
-    0% {
-      transform: translateX(100%);
-    }
-    100% {
-      transform: translateX(0%);
-    }
-  }
 }
 
 body {
@@ -50,14 +30,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee,
-  .animate-marquee2,
   .animate-pulse {
     animation: none;
-  }
-  /* The duplicate copies only exist to loop the scroll. */
-  .animate-marquee2,
-  .marquee-dup {
-    display: none;
   }
 }

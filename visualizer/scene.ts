@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { BAND_COUNT, createAnalysis, stepAnalysis } from "./analysis";
+import { FIRST_FRAME_EVENT } from "./events";
 import { blobFragmentShader, blobVertexShader } from "./shaders";
 
 export type Visualizer = {
@@ -7,8 +8,6 @@ export type Visualizer = {
   setTuning(on: boolean): void;
   dispose(): void;
 };
-
-export const FIRST_FRAME_EVENT = "visualizer-first-frame";
 
 const REDUCED_MOTION_SCALE = 0.4;
 /** The canvas overhangs the container by this fraction on each side so kicks and squash aren't clipped. */

@@ -7,7 +7,6 @@ export interface AudioEngine {
   play(): Promise<void>;
   pause(): void;
   setVolume(v: number): void;
-  setMuted(m: boolean): void;
   /** Dial-tuning static: stream ducks, noise rises. Off fades back (held while a load is pending, up to 3 s). */
   setTuning(on: boolean): void;
   readonly analyser: AnalyserNode | null;
@@ -64,7 +63,6 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   let token = 0;
   let failedToken = 0;
   let volume = 1;
-  let muted = false;
   // `paused` was already emitted for the current load: the element's own pause event must not repeat it.
   let pausedEmitted = false;
   let stallTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,7 +72,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     const noisy = tuning || holding;
     const t = ctx.currentTime;
     streamGain.gain.setTargetAtTime(noisy ? STREAM_TUNING_GAIN : 1, t, GAIN_TIME_CONSTANT);
-    staticGain.gain.setTargetAtTime(noisy && !paused && !muted ? STATIC_TUNING_GAIN * volume : 0, t, GAIN_TIME_CONSTANT);
+    staticGain.gain.setTargetAtTime(noisy && !paused ? STATIC_TUNING_GAIN * volume : 0, t, GAIN_TIME_CONSTANT);
   }
 
   function endHold() {
@@ -130,7 +128,6 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     const el = createAudio();
     el.crossOrigin = "anonymous";
     el.volume = volume;
-    el.muted = muted;
     // Events always describe the current load: setting a new src replaces the old one.
     el.addEventListener("playing", () => {
       clearStall();
@@ -248,11 +245,6 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     setVolume(v) {
       volume = Math.min(1, Math.max(0, v));
       if (audio) audio.volume = volume;
-      applyGains();
-    },
-    setMuted(m) {
-      muted = m;
-      if (audio) audio.muted = m;
       applyGains();
     },
     setTuning(on) {

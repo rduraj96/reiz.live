@@ -185,17 +185,15 @@ describe("audio engine", () => {
     expect(engine.analyser).toBe(analyser);
   });
 
-  it("sets crossOrigin anonymous, src, volume and mute", async () => {
+  it("sets crossOrigin anonymous, src and volume", async () => {
     const { engine, audio, plays } = setup();
     engine.setVolume(0.3);
-    engine.setMuted(true);
     const p = engine.load(st("a"));
     plays[0].resolve();
     await p;
     expect(audio.crossOrigin).toBe("anonymous");
     expect(audio.src).toBe("https://example.com/a");
     expect(audio.volume).toBe(0.3);
-    expect(audio.muted).toBe(true);
   });
 });
 
@@ -392,15 +390,6 @@ describe("audio engine: tuning static", () => {
     vi.advanceTimersByTime(5_000);
     expect(lastTarget(1)).toBe(0.45);
     audio.dispatchEvent(new Event("playing"));
-    expect(lastTarget(1)).toBe(0.45);
-  });
-
-  it("static is silent while muted", () => {
-    const { engine, lastTarget } = playingOn();
-    engine.setMuted(true);
-    engine.setTuning(true);
-    expect(lastTarget(1)).toBe(0);
-    engine.setMuted(false);
     expect(lastTarget(1)).toBe(0.45);
   });
 

@@ -41,7 +41,7 @@ describe("player store", () => {
 
   it("has the documented defaults", () => {
     const s = usePlayer.getState();
-    expect(s).toMatchObject({ language: "any", volume: 0.8, status: "idle", muted: false });
+    expect(s).toMatchObject({ language: "any", volume: 0.8, status: "idle" });
   });
 
   it("openPanel opens on the given tab and closePanel keeps the tab", () => {
@@ -143,10 +143,8 @@ describe("player store", () => {
     expect(usePlayer.getState().failedInARow).toBe(0);
   });
 
-  it("toggleMute, setVolume (clamped), setLanguage", () => {
+  it("setVolume (clamped), setLanguage", () => {
     const s = usePlayer.getState();
-    s.toggleMute();
-    expect(usePlayer.getState().muted).toBe(true);
     s.setVolume(2);
     expect(usePlayer.getState().volume).toBe(1);
     s.setVolume(-1);

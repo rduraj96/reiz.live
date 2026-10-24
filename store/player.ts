@@ -16,7 +16,6 @@ type PlayerState = {
   language: string;
   /** The dial is being dragged: the engine plays tuning static. */
   tuning: boolean;
-  muted: boolean;
   volume: number;
   failedInARow: number;
   /** Current station came from a share link and hasn't been loaded yet (autoplay is blocked until a tap). */
@@ -35,7 +34,6 @@ type PlayerActions = {
   setLanguage: (l: string) => void;
   setTuning: (on: boolean) => void;
   setStatus: (s: PlayerStatus) => void;
-  toggleMute: () => void;
   setVolume: (v: number) => void;
   openPanel: (tab: PanelTab) => void;
   closePanel: () => void;
@@ -57,7 +55,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     status: "idle",
     language: "any",
     tuning: false,
-    muted: false,
     volume: 0.8,
     failedInARow: 0,
     primed: false,
@@ -99,7 +96,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     setTuning: (tuning) => set({ tuning }),
     setStatus: (status) =>
       set(status === "playing" ? { status, failedInARow: 0 } : { status }),
-    toggleMute: () => set((s) => ({ muted: !s.muted })),
     setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
     openPanel: (tab) => set({ panel: { open: true, tab } }),
     closePanel: () => set((s) => ({ panel: { ...s.panel, open: false } })),

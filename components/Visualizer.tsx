@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { usePlayer } from "@/store/player";
-
-const FIRST_FRAME_EVENT = "visualizer-first-frame";
+import { FIRST_FRAME_EVENT } from "@/visualizer/events";
 
 /** Liquid chrome blob in a centred square. Mount once; nothing re-renders per frame. */
 export function Visualizer() {
