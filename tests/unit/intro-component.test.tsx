@@ -80,4 +80,30 @@ describe("Intro", () => {
     expect(tuner.glideTo).toHaveBeenCalledTimes(1);
     expect(tuner.glideTo).toHaveBeenCalledWith("late", expect.objectContaining({ prime: true }));
   });
+
+  it("waits for the needle's band rather than starting a neighbour that loaded first", async () => {
+    act(() => useDial.setState({ needleGenre: "house" }));
+    render(<Intro />);
+    act(() => useDial.getState().patchBand("80s", { state: "ready", stations: [station("eighties")] }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000 + 350 + 850 + 200);
+    });
+    expect(tuner.glideTo).not.toHaveBeenCalled();
+    act(() => useDial.getState().patchBand("house", { state: "ready", stations: [station("house-one")] }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(tuner.glideTo).toHaveBeenCalledWith("house-one", expect.objectContaining({ prime: true }));
+  });
+
+  it("falls back to a ready neighbour when the needle's band is empty or failed", async () => {
+    act(() => useDial.setState({ needleGenre: "house" }));
+    render(<Intro />);
+    act(() => useDial.getState().patchBand("80s", { state: "ready", stations: [station("eighties")] }));
+    act(() => useDial.getState().patchBand("house", { state: "error" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000 + 350 + 850 + 200);
+    });
+    expect(tuner.glideTo).toHaveBeenCalledWith("eighties", expect.objectContaining({ prime: true }));
+  });
 });

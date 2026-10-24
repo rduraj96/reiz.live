@@ -33,12 +33,18 @@ if (typeof window !== "undefined") {
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** The needle's band if it is ready, else the first ready band; its first station. */
+/**
+ * The first station of the needle's band. While that band is still loading, wait (null) rather than start a
+ * neighbour that happened to load first; only an empty or failed needle band (or no needle yet) falls back to the
+ * first ready band.
+ */
 function firstStationId(): string | null {
   const { bands, needleGenre } = useDial.getState();
   const ready = (b: (typeof bands)[number]) => b.state === "ready" && b.stations.length > 0;
-  const band = bands.find((b) => b.genre === needleGenre && ready(b)) ?? bands.find(ready);
-  return band?.stations[0].id ?? null;
+  const needle = bands.find((b) => b.genre === needleGenre);
+  if (needle && ready(needle)) return needle.stations[0].id;
+  if (needle && (needle.state === "idle" || needle.state === "loading")) return null;
+  return bands.find(ready)?.stations[0].id ?? null;
 }
 
 /** Glide the dial onto `id`, retrying a few frames while the Tuner hasn't registered yet. */
