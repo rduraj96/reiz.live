@@ -1,7 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BigName } from "@/components/BigName";
 import { Readout } from "@/components/Readout";
 import { tunerApi } from "@/components/Tuner";
 import type { Station } from "@/lib/radio/types";
@@ -122,40 +121,5 @@ describe("Readout", () => {
     expect(screen.getByText("Couldn't load")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalled();
-  });
-});
-
-describe("BigName", () => {
-  it("renders one span per character, aria-hidden, staggered 32 ms", () => {
-    const { container } = render(<BigName />);
-    act(() => usePlayer.setState({ current: station({ name: "A B" }) }));
-    const root = container.firstElementChild!;
-    expect(root).toHaveAttribute("aria-hidden", "true");
-    const spans = root.querySelectorAll("span");
-    expect(spans).toHaveLength(3);
-    expect(spans[2]).toHaveStyle({ transitionDelay: "64ms" });
-  });
-
-  it("uses the smaller size class above 14 characters", () => {
-    const { container } = render(<BigName />);
-    act(() => usePlayer.setState({ current: station({ name: "Fourteen chars" }) }));
-    expect(container.firstElementChild!.className).not.toMatch(/long/);
-    act(() => usePlayer.setState({ current: station({ name: "Fifteen chars!!!" }) }));
-    expect(container.firstElementChild!.className).toMatch(/long/);
-  });
-
-  it("has the out class while tuning", () => {
-    const { container } = render(<BigName />);
-    act(() => usePlayer.setState({ current: station(), tuning: true }));
-    expect(container.firstElementChild!.className).toMatch(/out/);
-    act(() => usePlayer.setState({ tuning: false }));
-    expect(container.firstElementChild!.className).not.toMatch(/out/);
-  });
-
-  it("drops the stagger with reduced motion", () => {
-    reduced = true;
-    const { container } = render(<BigName />);
-    act(() => usePlayer.setState({ current: station({ name: "AB" }) }));
-    expect(container.querySelectorAll("span")[1]).toHaveStyle({ transitionDelay: "0ms" });
   });
 });

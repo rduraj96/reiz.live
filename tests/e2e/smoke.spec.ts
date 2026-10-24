@@ -50,18 +50,20 @@ async function tune(page: Page, steps: number) {
   for (let i = 0; i < steps; i++) await page.keyboard.press("ArrowRight");
 }
 
-/** The outlined big name, read letter by letter. */
+/** The big name's first ticker item (the ticker is the treatment at desktop width), without its separators. */
 const bigName = (page: Page) =>
-  page.locator('main div[aria-hidden="true"] > span').evaluateAll((spans) =>
-    spans.map((s) => s.textContent).join("").replace(/ /g, " "),
-  );
+  page
+    .locator('main [data-variant="ticker"] [data-ticker-item]')
+    .first()
+    .evaluate((el) => (el.textContent ?? "").split("●")[0])
+    .catch(() => "");
 
 test("keyboard tuning updates the readout and big name, and the blob plays", async ({ page }) => {
   await setup(page);
   await tune(page, 2);
 
   await expect(readoutName(page, "House Three")).toBeVisible();
-  await expect.poll(() => bigName(page)).toBe("House Three");
+  await expect.poll(() => bigName(page)).toBe("HOUSE THREE");
 
   const blob = page.getByRole("button", { name: /^(Play|Pause)$/ });
   // The tuned station loads and plays (autoplay is allowed in the test browser).

@@ -1,8 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
-
-// TEMPORARY with NameStylePicker: `?name=<variant>` picks the BigName treatment.
+import { expect, test } from "@playwright/test";
 
 const tone = readFileSync(path.resolve("tests/e2e/fixtures/tone.wav"));
 
@@ -20,26 +18,24 @@ const station = {
   bitrate: 128,
 };
 
-async function open(page: Page, variant: string) {
+test("station name: orbit ring on phones, ticker band on desktop", async ({ page }) => {
   await page.route("**/__test/tone.wav", (route) =>
     route.fulfill({ status: 200, contentType: "audio/wav", body: tone }),
   );
   await page.route("**/api/stations*", (route) => route.fulfill({ json: [station] }));
-  await page.goto(`/?name=${variant}`);
-}
+  const orbit = page.locator('main [data-variant="orbit"]');
+  const ticker = page.locator('main [data-variant="ticker"]');
+  const textOf = (l: typeof orbit) =>
+    l.evaluate((el) => (el.textContent ?? "").replace(/\s+/g, "").toUpperCase());
 
-/** The BigName layer's text, spaces normalised and uppercased. */
-const bigNameText = (page: Page, variant: string) =>
-  page
-    .locator(`main [aria-hidden="true"][data-variant="${variant}"]`)
-    .evaluate((el) => (el.textContent ?? "").replace(/ /g, " ").toUpperCase());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect.poll(() => textOf(orbit)).toContain("HOUSEONE");
+  await expect(orbit).toBeVisible();
+  await expect(ticker).toBeHidden();
 
-for (const variant of ["part", "orbit"]) {
-  test(`?name=${variant} shows the station name in that treatment`, async ({ page }) => {
-    await open(page, variant);
-    await expect.poll(() => bigNameText(page, variant)).toContain("HOUSE");
-    const text = await bigNameText(page, variant);
-    expect(text.replace(/\s+/g, "")).toContain("HOUSEONE");
-    if (variant === "orbit") expect(text).toContain("DE");
-  });
-}
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(ticker).toBeVisible();
+  await expect(orbit).toBeHidden();
+  expect(await textOf(ticker)).toContain("HOUSEONE");
+});

@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AboutPanel } from "@/components/AboutPanel";
-import { BigName, centreRowClass } from "@/components/BigName";
+import { BigName } from "@/components/BigName";
 import { Intro } from "@/components/Intro";
 import { Header } from "@/components/Header";
 import { LoginDialog } from "@/components/LoginDialog";
-import { NameStylePicker, useNameStyle } from "@/components/NameStylePicker";
 import { Readout } from "@/components/Readout";
 import { StationPanel } from "@/components/StationPanel";
 import { Toast } from "@/components/Toast";
@@ -60,11 +59,6 @@ export function Player({ initialStation }: { initialStation?: Station }) {
 
   const openPanel = usePlayer((s) => s.openPanel);
   const [aboutOpen, setAboutOpen] = useState(false);
-  // TEMPORARY: the name-style switch (NameStylePicker); left out of e2e builds so the tab order stays as tested.
-  const [nameStyle, setNameStyle] = useNameStyle();
-  const [introOver, setIntroOver] = useState(false);
-  const endIntro = useCallback(() => setIntroOver(true), []);
-  const showPicker = introOver && process.env.NEXT_PUBLIC_E2E !== "1";
 
   return (
     <div className="relative flex h-dvh w-full select-none flex-col overflow-hidden">
@@ -74,10 +68,9 @@ export function Player({ initialStation }: { initialStation?: Station }) {
         onInfo={() => setAboutOpen(true)}
       />
       <main className="flex min-h-0 flex-1 flex-col">
-        <div className={`relative grid min-h-0 flex-1 place-items-center ${centreRowClass(nameStyle)}`}>
-          <BigName variant={nameStyle} />
+        <div className="relative grid min-h-0 flex-1 place-items-center">
+          <BigName />
           <BlobButton />
-          <NameStylePicker value={nameStyle} onChange={setNameStyle} hidden={!showPicker} />
         </div>
         <Readout {...readout} />
         <Tuner offDial={initialStation ? { station: initialStation, label: "Shared" } : undefined} />
@@ -87,7 +80,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
       <LoginDialog />
       <Toast />
-      <Intro onDone={endIntro} />
+      <Intro />
     </div>
   );
 }

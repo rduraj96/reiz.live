@@ -1,56 +1,4 @@
-.bigname {
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 0;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.85;
-  text-transform: uppercase;
-  white-space: nowrap;
-  font-size: clamp(56px, 13vw, 168px);
-  color: transparent;
-  -webkit-text-stroke: 1px hsl(0 0% 28%);
-}
-.long {
-  font-size: clamp(40px, 9vw, 120px);
-}
-
-.letter {
-  display: inline-block;
-  transform: translateY(45%) rotate(4deg);
-  opacity: 0;
-  filter: blur(6px);
-  transition:
-    transform 0.7s var(--ease-out),
-    opacity 0.5s,
-    filter 0.5s;
-}
-.in {
-  transform: none;
-  opacity: 1;
-  filter: none;
-}
-.out .letter {
-  opacity: 0;
-  filter: blur(10px);
-  transform: translateY(-20%);
-  transition-duration: 0.25s;
-  transition-delay: 0s !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .letter,
-  .out .letter {
-    transition: none;
-  }
-}
-
-/* ── Alternative treatments (ticker, part, orbit, stack): a full layer over the centre row, behind the blob ── */
+/* A full layer over the centre row, behind the blob. Orbit below 760 px, ticker at 760 px and up. */
 .alt {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --blob: min(70vw, 360px);
@@ -109,66 +57,6 @@
   }
 }
 
-/* Part: two solid halves; the gap between them opens to clear the blob. Font size is fitted in JS. */
-/* Three columns so the gap (and so the parting) stays centred on the blob whatever the halves' widths. */
-.row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-}
-.row > :first-child {
-  justify-self: end;
-}
-.row > :last-child {
-  justify-self: start;
-}
-.vertical .row {
-  grid-template-columns: none;
-  grid-template-rows: 1fr auto 1fr;
-  justify-items: center;
-}
-.vertical .row > :first-child {
-  justify-self: center;
-  align-self: end;
-}
-.vertical .row > :last-child {
-  justify-self: center;
-  align-self: start;
-}
-.half {
-  flex: none;
-  display: flex;
-  white-space: nowrap;
-  font-weight: 800;
-  font-size: clamp(40px, 8.5vw, 120px);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  color: var(--foreground);
-}
-.gap {
-  width: 0;
-  height: 0;
-  transition:
-    width 0.9s var(--ease-out),
-    height 0.9s var(--ease-out);
-}
-.open .gap {
-  width: calc(var(--blob) * 1.12);
-  transition-delay: 0.25s;
-}
-.vertical.open .gap {
-  width: 0;
-  height: calc(var(--blob) * 1.12);
-}
-.part .letter {
-  transform: translateY(40%);
-}
-.part .letter.in {
-  transform: none;
-}
-
 /* Orbit: a ring of text around the blob, turning once every 26 s. */
 /* 1.55 × blob, but never wider than the screen (the text sits just outside the ring). */
 .orbit svg {
@@ -200,53 +88,26 @@
   }
 }
 
-/* Stack: the name over the blob, at the top of the centre row; the row is padded so the blob sits below it. */
-.stack {
-  place-items: start center;
-  padding-top: 16px;
-}
-.stackBlock {
-  max-width: 100%;
-  text-align: center;
-}
-.stackName {
-  white-space: nowrap;
-  font-weight: 800;
-  font-size: clamp(30px, 6vw, 72px);
-  letter-spacing: -0.04em;
-  line-height: 0.95;
-  padding: 0 16px;
-  color: var(--foreground);
-}
-.meta {
-  margin-top: 10px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  transition: opacity 0.3s;
-}
-.meta b {
-  color: var(--accent);
-  font-weight: 400;
-}
-.stack.out .meta {
-  opacity: 0;
-}
-/* Room above the blob: the stack block's height (name + meta + padding). */
-.stackRow {
-  padding-top: calc(clamp(30px, 6vw, 72px) * 0.95 + 56px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .band,
   .orbit svg {
     animation: none;
   }
   .band,
-  .gap,
-  .fade,
-  .meta {
+  .fade {
     transition: none;
+  }
+}
+
+/* Exactly one treatment shows; display: none keeps the other's animation from running. */
+.wide {
+  display: none;
+}
+@media (min-width: 760px) {
+  .wide {
+    display: grid;
+  }
+  .narrow {
+    display: none;
   }
 }
