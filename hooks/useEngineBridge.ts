@@ -30,8 +30,8 @@ const mediaActions = {
 };
 
 function syncFromStore() {
-  const { current, status } = usePlayer.getState();
-  syncMediaSession(current, status, mediaActions);
+  const { current, status, nowPlaying } = usePlayer.getState();
+  syncMediaSession(current, status, mediaActions, nowPlaying);
 }
 
 /** The single place where store and audio engine are kept in sync. Mount once. */
@@ -63,7 +63,9 @@ export function useEngineBridge() {
       if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.tuning !== prev.tuning) engine.setTuning(state.tuning);
-      if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
+      if (state.current !== prev.current || state.status !== prev.status || state.nowPlaying !== prev.nowPlaying) {
+        syncFromStore();
+      }
     });
 
     return () => {

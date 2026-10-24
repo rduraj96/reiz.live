@@ -21,6 +21,8 @@ type PlayerState = {
   /** Current station came from a share link and hasn't been loaded yet (autoplay is blocked until a tap). */
   primed: boolean;
   panel: { open: boolean; tab: PanelTab };
+  /** "Artist - Title" from the current station's stream, when it sends one. */
+  nowPlaying: string | null;
 };
 
 type PlayerActions = {
@@ -37,6 +39,7 @@ type PlayerActions = {
   setVolume: (v: number) => void;
   openPanel: (tab: PanelTab) => void;
   closePanel: () => void;
+  setNowPlaying: (title: string | null) => void;
 };
 
 export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
@@ -59,6 +62,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     failedInARow: 0,
     primed: false,
     panel: { open: false, tab: "search" },
+    nowPlaying: null,
 
     setList: (list) => set({ list, failedInARow: 0 }),
     prime: (station) =>
@@ -99,5 +103,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
     openPanel: (tab) => set({ panel: { open: true, tab } }),
     closePanel: () => set((s) => ({ panel: { ...s.panel, open: false } })),
+    setNowPlaying: (nowPlaying) => set({ nowPlaying }),
   };
 });

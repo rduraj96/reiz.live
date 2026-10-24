@@ -35,8 +35,11 @@ function useRisen(name: string) {
 
 type Props = { name: string; tuning: boolean };
 
-/** A band behind the blob repeating `NAME ● FREQ ●`, scrolling left at a steady ~70 px/s. */
-function Ticker({ name, tuning, freq }: Props & { freq: string | null }) {
+/** The song on the orbit is cut to this many characters so the ring's spacing stays readable. */
+const ORBIT_SONG_MAX = 32;
+
+/** A band behind the blob repeating `NAME ● FREQ ● SONG ●`, scrolling left at a steady ~70 px/s. */
+function Ticker({ name, tuning, freq, song }: Props & { freq: string | null; song: string | null }) {
   const shown = useRisen(name);
   const bandRef = useRef<HTMLDivElement>(null);
   const upper = name.toUpperCase();
@@ -53,13 +56,13 @@ function Ticker({ name, tuning, freq }: Props & { freq: string | null }) {
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(time) : null;
     ro?.observe(band);
     return () => ro?.disconnect();
-  }, [upper, freq]);
+  }, [upper, freq, song]);
 
   return (
     <div aria-hidden="true" data-variant="ticker" className={cx(styles.alt, styles.ticker, styles.wide, tuning && styles.out)}>
       {name && (
         // Keyed by the content so the scroll restarts from the left for each station.
-        <div key={`${upper}|${freq}`} ref={bandRef} className={cx(styles.band, shown === name && styles.in)}>
+        <div key={`${upper}|${freq}|${song}`} ref={bandRef} className={cx(styles.band, shown === name && styles.in)}>
           {Array.from({ length: TICKER_REPEATS }, (_, i) => (
             <span key={i} data-ticker-item className={styles.item}>
               {upper}
@@ -67,6 +70,12 @@ function Ticker({ name, tuning, freq }: Props & { freq: string | null }) {
               {freq && (
                 <>
                   {freq}
+                  <i>●</i>
+                </>
+              )}
+              {song && (
+                <>
+                  {song.toUpperCase()}
                   <i>●</i>
                 </>
               )}
@@ -78,13 +87,24 @@ function Ticker({ name, tuning, freq }: Props & { freq: string | null }) {
   );
 }
 
-/** `NAME · FREQ · GENRE · CC ·` on a slowly turning ring around the blob, stretched to fill the circle. */
-function Orbit({ name, tuning, freq, genre, cc }: Props & { freq: string | null; genre?: string; cc?: string }) {
+/** `NAME · FREQ · SONG ·` (or `· GENRE · CC ·` until a song is known) on a slowly turning ring, stretched to fill it. */
+function Orbit({
+  name,
+  tuning,
+  freq,
+  genre,
+  cc,
+  song,
+}: Props & { freq: string | null; genre?: string; cc?: string; song: string | null }) {
   const shown = useRisen(name);
   const ringId = `ring-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const sep = " · ";
   const visible = !!name && shown === name && !tuning;
-  const tail = [genre, cc].filter(Boolean).join(sep);
+  const tail = song
+    ? song.length > ORBIT_SONG_MAX
+      ? `${song.slice(0, ORBIT_SONG_MAX - 1).trimEnd()}…`
+      : song
+    : [genre, cc].filter(Boolean).join(sep);
 
   return (
     <div aria-hidden="true" data-variant="orbit" className={cx(styles.alt, styles.orbit, styles.narrow, tuning && styles.out)}>
@@ -108,7 +128,7 @@ function Orbit({ name, tuning, freq, genre, cc }: Props & { freq: string | null;
                     {sep}
                   </>
                 )}
-                {tail && `${tail}${sep}`}
+                {tail && `${tail.toUpperCase()}${sep}`}
               </textPath>
             </text>
           </g>
@@ -125,8 +145,9 @@ function Orbit({ name, tuning, freq, genre, cc }: Props & { freq: string | null;
  */
 export function BigName() {
   const tuning = usePlayer((s) => s.tuning);
+  const song = usePlayer((s) => s.nowPlaying);
   const meta = useStationMeta();
-  const info = { name: meta?.name ?? "", tuning, freq: meta?.freq ?? null };
+  const info = { name: meta?.name ?? "", tuning, freq: meta?.freq ?? null, song };
   return (
     <>
       <Ticker {...info} />

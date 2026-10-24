@@ -14,10 +14,11 @@ const APP_ICON: MediaImage = { src: "/icon-512.png", sizes: "512x512" };
  * MediaMetadata throws a TypeError for artwork URLs it cannot resolve (e.g. a favicon of "https://").
  * Try the favicon, then the app icon, then no artwork, so a bad favicon never blocks playback.
  */
-function metadataFor(station: Station): MediaMetadata | null {
+function metadataFor(station: Station, song: string | null): MediaMetadata | null {
+  // With a song: the song is the title and the station the artist line; without: the station and its country/genre.
   const base = {
-    title: station.name,
-    artist: [station.country, station.tags[0]].filter(Boolean).join(" · "),
+    title: song ?? station.name,
+    artist: song ? station.name : [station.country, station.tags[0]].filter(Boolean).join(" · "),
     album: "REIZDIO",
   };
   const artworks: (MediaImage[] | undefined)[] = [
@@ -40,11 +41,12 @@ export function syncMediaSession(
   station: Station | null,
   status: PlayerStatus,
   actions: MediaActions,
+  song: string | null = null,
 ): void {
   if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
   const session = navigator.mediaSession;
 
-  session.metadata = station ? metadataFor(station) : null;
+  session.metadata = station ? metadataFor(station, song) : null;
   session.playbackState = playbackState(station, status);
 
   const handlers: [MediaSessionAction, () => void][] = [

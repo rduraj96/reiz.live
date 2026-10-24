@@ -157,3 +157,14 @@ test("a first visit opens on House: it is requested first and the needle sits on
   await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
   expect(new URL(requests[0]).searchParams.get("genre")).toBe("house");
 });
+
+test("the current song shows under the station name and in the big name", async ({ page }) => {
+  await page.route("**/api/now-playing*", (route) => route.fulfill({ json: { title: "Daft Punk - Digital Love" } }));
+  await setup(page);
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.locator("main [data-now-playing]")).toHaveText("Daft Punk - Digital Love", { timeout: 5000 });
+  const big = page.locator(page.viewportSize()!.width >= 760 ? "main [data-variant='ticker']" : "main [data-variant='orbit']");
+  await expect(big).toContainText("DAFT PUNK - DIGITAL LOVE");
+  expect(await page.evaluate(() => navigator.mediaSession?.metadata?.title)).toBe("Daft Punk - Digital Love");
+});

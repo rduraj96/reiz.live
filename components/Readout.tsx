@@ -61,6 +61,7 @@ function useRolledFrequency(id: string | null) {
 export function Readout({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   const current = usePlayer((s) => s.current);
   const tuning = usePlayer((s) => s.tuning);
+  const song = usePlayer((s) => s.nowPlaying);
   const meta = useStationMeta();
   const { numRef, sepRef } = useRolledFrequency(current?.id ?? null);
 
@@ -97,6 +98,14 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
             className={`col-span-2 row-start-2 min-w-0 truncate whitespace-nowrap text-xl tracking-[-0.01em] transition-opacity duration-200 md:text-[26px] min-[760px]:mt-1 ${tuning ? "opacity-35" : ""}`}
           >
             {current?.name}
+          </div>
+        )}
+        {song && !message && (
+          <div
+            data-now-playing
+            className={`col-span-2 row-start-3 min-w-0 truncate text-sm text-muted transition-opacity duration-200 md:text-base ${tuning ? "opacity-35" : ""}`}
+          >
+            {song}
           </div>
         )}
       </div>

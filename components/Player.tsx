@@ -14,6 +14,7 @@ import { Tuner, tunerApi } from "@/components/Tuner";
 import { Visualizer } from "@/components/Visualizer";
 import { useDialBands } from "@/hooks/useDialBands";
 import { togglePlay, useEngineBridge } from "@/hooks/useEngineBridge";
+import { useNowPlaying } from "@/hooks/useNowPlaying";
 import { useReadoutState } from "@/hooks/useReadoutState";
 import type { Station } from "@/lib/radio/types";
 import { usePlayer } from "@/store/player";
@@ -56,6 +57,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
   }, [initialStation]);
   useEngineBridge();
   useDialBands();
+  useNowPlaying();
   const readout = useReadoutState();
 
   const openPanel = usePlayer((s) => s.openPanel);
