@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { getSupabase } from "@/lib/supabase/client";
-import { useAuth } from "@/store/auth";
+import { signOut, useAuth } from "@/store/auth";
 import { SurpriseButton } from "./SurpriseButton";
 
 type HeaderProps = {
@@ -88,7 +87,7 @@ function MobileMenu({ onOpen, onAbout }: HeaderProps) {
             <button
               type="button"
               className={menuItem}
-              onClick={run(() => (user ? void getSupabase()?.auth.signOut() : openLogin()))}
+              onClick={run(() => (user ? void signOut() : openLogin()))}
             >
               {user ? "Log out" : "Log in"}
             </button>
@@ -100,6 +99,8 @@ function MobileMenu({ onOpen, onAbout }: HeaderProps) {
 }
 
 export function Header({ onOpen, onAbout }: HeaderProps) {
+  const user = useAuth((s) => s.user);
+  const openLogin = useAuth((s) => s.openLogin);
   return (
     <motion.header
       initial={{ y: -50, opacity: 0 }}
@@ -139,6 +140,15 @@ export function Header({ onOpen, onAbout }: HeaderProps) {
           onClick={onAbout}
         >
           ABOUT
+        </motion.button>
+        <div className="w-4 h-0.5 bg-gray-200 hidden md:block" />
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={navItem}
+          onClick={() => (user ? void signOut() : openLogin())}
+        >
+          {user ? "LOGOUT" : "LOGIN"}
         </motion.button>
       </nav>
     </motion.header>

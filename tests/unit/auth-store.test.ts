@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it } from "vitest";
-import { attachAuth, handleAuthEvent, useAuth } from "@/store/auth";
+import { useToast } from "@/store/toast";
+import { attachAuth, handleAuthEvent, signOut, useAuth } from "@/store/auth";
 import { fakeSb, st } from "../helpers/fake-supabase";
 
 const user = { id: "u1" } as User;
@@ -76,5 +77,33 @@ describe("auth store", () => {
     await useAuth.getState().toggleSaved(st("a"));
     expect(useAuth.getState().saved.map((s) => s.id)).toEqual(["x"]);
     expect(useAuth.getState().error).toBe("Could not save station: denied");
+  });
+});
+
+describe("signOut", () => {
+  const attach = (signOutFn: () => Promise<{ error: unknown }>) =>
+    attachAuth({ auth: { signOut: signOutFn, onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } } as unknown as SupabaseClient);
+
+  beforeEach(() => useToast.setState({ message: null }));
+
+  it("shows no toast on success", async () => {
+    attach(async () => ({ error: null }));
+    await signOut();
+    expect(useToast.getState().message).toBeNull();
+  });
+
+  it.each([
+    ["an { error } result", () => Promise.resolve({ error: { message: "nope" } })],
+    ["a rejection", () => Promise.reject(new Error("net"))],
+  ])("toasts on %s", async (_n, fn) => {
+    attach(fn);
+    await signOut();
+    expect(useToast.getState().message).toBe("Couldn't log out — try again");
+  });
+
+  it("toasts when there is no client", async () => {
+    attachAuth(null);
+    await signOut();
+    expect(useToast.getState().message).toBe("Couldn't log out — try again");
   });
 });

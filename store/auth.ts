@@ -1,5 +1,6 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { create } from "zustand";
+import { useToast } from "@/store/toast";
 import { listSaved, saveStation, unsaveStation } from "@/lib/library/saved";
 import type { Station } from "@/lib/radio/types";
 
@@ -59,6 +60,18 @@ export const useAuth = create<AuthState & AuthActions>()((set, get) => ({
     }
   },
 }));
+
+/** Signs out; any failure (no client, `{ error }`, rejection) is surfaced via a toast. */
+export async function signOut(): Promise<void> {
+  const fail = () => useToast.getState().show("Couldn't log out — try again");
+  if (!sb) return fail();
+  try {
+    const { error } = await sb.auth.signOut();
+    if (error) fail();
+  } catch {
+    fail();
+  }
+}
 
 let queue: Promise<void> = Promise.resolve();
 

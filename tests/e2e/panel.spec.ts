@@ -74,3 +74,9 @@ test("ABOUT shows the directory credit and repo link", async ({ page }) => {
     "https://github.com/rduraj96/reiz.live",
   );
 });
+
+test("LOGIN is in the desktop nav and opens the dialog", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("button", { name: "LOGIN" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
+});
