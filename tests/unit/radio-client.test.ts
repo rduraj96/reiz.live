@@ -4,7 +4,9 @@ import {
   byId,
   byTag,
   countries,
+  MIRRORS,
   normalize,
+  resetMirrors,
   search,
 } from "@/lib/radio/client";
 import type { RawStation } from "@/lib/radio/types";
@@ -140,5 +142,64 @@ describe("errors", () => {
   it("throws RadioBrowserError on fetch rejection", async () => {
     fetchMock.mockRejectedValue(new Error("boom"));
     await expect(countries()).rejects.toBeInstanceOf(RadioBrowserError);
+  });
+});
+
+describe("mirror fallback", () => {
+  const status = (code: number) => ({ ok: code < 400, status: code, json: async () => [] }) as Response;
+  const hostOf = (call: unknown[]) => new URL(call[0] as string).host;
+
+  beforeEach(() => {
+    delete process.env.RADIO_BROWSER_BASE;
+    resetMirrors();
+  });
+
+  it("lists de1, de2 and fi1", () => {
+    expect(MIRRORS).toEqual([
+      "https://de1.api.radio-browser.info",
+      "https://de2.api.radio-browser.info",
+      "https://fi1.api.radio-browser.info",
+    ]);
+  });
+
+  it("moves to the next mirror on a 5xx and starts there next time", async () => {
+    fetchMock.mockResolvedValueOnce(status(502)).mockResolvedValueOnce(ok([raw])).mockResolvedValueOnce(ok([raw]));
+    await expect(byId("abc-123")).resolves.toMatchObject({ id: "abc-123" });
+    expect(fetchMock.mock.calls.map(hostOf)).toEqual(["de1.api.radio-browser.info", "de2.api.radio-browser.info"]);
+    await byId("abc-123");
+    expect(hostOf(fetchMock.mock.calls[2])).toBe("de2.api.radio-browser.info");
+  });
+
+  it("moves on after a network error or timeout", async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockRejectedValueOnce(new DOMException("timed out", "TimeoutError"))
+      .mockResolvedValueOnce(ok([raw]));
+    await expect(byId("abc-123")).resolves.toMatchObject({ id: "abc-123" });
+    expect(fetchMock.mock.calls.map(hostOf)).toEqual([
+      "de1.api.radio-browser.info",
+      "de2.api.radio-browser.info",
+      "fi1.api.radio-browser.info",
+    ]);
+  });
+
+  it("treats a 4xx as final", async () => {
+    fetchMock.mockResolvedValue(status(404));
+    await expect(byId("abc-123")).rejects.toBeInstanceOf(RadioBrowserError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws once every mirror has failed", async () => {
+    fetchMock.mockResolvedValue(status(503));
+    await expect(byId("abc-123")).rejects.toThrow("Radio Browser responded 503");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("RADIO_BROWSER_BASE pins a single server", async () => {
+    process.env.RADIO_BROWSER_BASE = BASE;
+    fetchMock.mockResolvedValue(status(503));
+    await expect(byId("abc-123")).rejects.toBeInstanceOf(RadioBrowserError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toMatch(/^http:\/\/radio\.test\//);
   });
 });
