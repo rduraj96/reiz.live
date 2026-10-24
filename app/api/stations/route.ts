@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RadioBrowserError, byTag } from "@/lib/radio/client";
+import { playableOnly } from "@/lib/radio/verify";
 
 const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 
@@ -10,7 +11,9 @@ export async function GET(request: NextRequest) {
   const language = params.get("language");
 
   try {
-    const stations = await byTag(genre, !language || language === "any" ? null : language);
+    const stations = await playableOnly(
+      await byTag(genre, !language || language === "any" ? null : language),
+    );
     return NextResponse.json(stations, { headers: { "Cache-Control": CACHE_CONTROL } });
   } catch (error) {
     if (error instanceof RadioBrowserError) {

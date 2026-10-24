@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RadioBrowserError, search } from "@/lib/radio/client";
+import { playableOnly } from "@/lib/radio/verify";
 
 const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const stations = await search(q, params.get("country") || null);
+    const stations = await playableOnly(await search(q, params.get("country") || null));
     return NextResponse.json(stations, { headers: { "Cache-Control": CACHE_CONTROL } });
   } catch (error) {
     if (error instanceof RadioBrowserError) {

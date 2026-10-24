@@ -15,6 +15,10 @@ const { byTag, search, byId, countries, playableOnly, RadioBrowserError } = vi.h
 });
 
 vi.mock("@/lib/radio/client", () => ({ byTag, search, byId, countries, RadioBrowserError }));
+vi.mock("next/server", async (orig) => ({
+  ...(await orig<typeof import("next/server")>()),
+  connection: async () => {},
+}));
 vi.mock("@/lib/radio/verify", () => ({ playableOnly }));
 
 import { GET as list } from "@/app/api/stations/route";
@@ -52,16 +56,19 @@ afterEach(() => {
 
 describe("GET /api/stations", () => {
   it("returns stations for genre and language with cache header", async () => {
-    byTag.mockResolvedValue([st("a")]);
+    byTag.mockResolvedValue([st("a"), st("b")]);
+    playableOnly.mockResolvedValue([st("b")]);
     const res = await list(req("/api/stations?genre=house&language=english"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual([st("a")]);
+    expect(await res.json()).toEqual([st("b")]);
     expect(byTag).toHaveBeenCalledWith("house", "english");
+    expect(playableOnly).toHaveBeenCalledWith([st("a"), st("b")]);
     expect(res.headers.get("Cache-Control")).toBe(CACHE);
   });
 
   it("treats language=any and missing language as null", async () => {
     byTag.mockResolvedValue([]);
+    playableOnly.mockResolvedValue([]);
     await list(req("/api/stations?genre=house&language=any"));
     expect(byTag).toHaveBeenLastCalledWith("house", null);
     await list(req("/api/stations?genre=house"));
@@ -89,16 +96,19 @@ describe("GET /api/stations", () => {
 
 describe("GET /api/stations/search", () => {
   it("searches by name and country", async () => {
-    search.mockResolvedValue([st("a")]);
+    search.mockResolvedValue([st("a"), st("b")]);
+    playableOnly.mockResolvedValue([st("b")]);
     const res = await searchRoute(req("/api/stations/search?q=jazz&country=FR"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual([st("a")]);
+    expect(await res.json()).toEqual([st("b")]);
+    expect(playableOnly).toHaveBeenCalledWith([st("a"), st("b")]);
     expect(search).toHaveBeenCalledWith("jazz", "FR");
     expect(res.headers.get("Cache-Control")).toBe(CACHE);
   });
 
   it("passes null country when absent", async () => {
     search.mockResolvedValue([]);
+    playableOnly.mockResolvedValue([]);
     await searchRoute(req("/api/stations/search?q=jazz"));
     expect(search).toHaveBeenCalledWith("jazz", null);
   });
