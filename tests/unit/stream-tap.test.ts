@@ -44,7 +44,21 @@ function fakeCtx(opts: { decodeFails?: boolean; probeLevel?: () => number } = {}
   return { ctx, started, analysers };
 }
 
-/** A fetch whose body yields `chunks` chunks of `size` bytes, `gapMs` apart, then stays open until aborted. */
+/** MPEG-1 Layer III, 128 kbps, 44.1 kHz, no padding: a 417-byte frame. */
+const FRAME = (() => {
+  const f = new Uint8Array(417);
+  f.set([0xff, 0xfb, 0x90, 0x64]);
+  return f;
+})();
+/** `size` bytes of back-to-back MP3 frames, starting `offset` bytes into the frame sequence (mid-frame). */
+function mp3Bytes(size: number, offset: number): Uint8Array {
+  const out = new Uint8Array(size);
+  for (let i = 0; i < size; i++) out[i] = FRAME[(i + offset) % FRAME.length];
+  return out;
+}
+
+/** A fetch whose body yields `chunks` chunks of `size` MP3 bytes cut at arbitrary points, `gapMs` apart, then stays
+ * open until aborted. */
 function streamFetch(chunks: number, size = 5000, gapMs = 300, type = "audio/mpeg") {
   return vi.fn(async (_url: unknown, init?: RequestInit) => {
     let i = 0;
@@ -56,7 +70,7 @@ function streamFetch(chunks: number, size = 5000, gapMs = 300, type = "audio/mpe
           return;
         }
         await new Promise((r) => setTimeout(r, gapMs));
-        c.enqueue(new Uint8Array(size));
+        c.enqueue(mp3Bytes(size, 100 + (i - 1) * size));
       },
     });
     return new Response(body, { headers: { "content-type": type } });
@@ -77,6 +91,12 @@ describe("stream tap", () => {
     await vi.advanceTimersByTimeAsync(1500);
     expect(tap.running).toBe(true);
     expect(tap.stats.chunks).toBeGreaterThanOrEqual(2);
+    // Only whole frames are decoded: every decoded slice is a multiple of the frame size.
+    for (const call of ctx.decodeAudioData.mock.calls) {
+      const bytes = new Uint8Array(call[0] as ArrayBuffer);
+      expect(bytes.length % FRAME.length).toBe(0);
+      expect([bytes[0], bytes[1]]).toEqual([0xff, 0xfb]);
+    }
     for (let i = 1; i < started.length; i++) {
       expect(started[i].at).toBeCloseTo(started[i - 1].at + started[i - 1].duration, 6);
     }

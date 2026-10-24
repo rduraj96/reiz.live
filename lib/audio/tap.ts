@@ -1,3 +1,5 @@
+import { splitFrames } from "./frames";
+
 /** Gather this long (and at least MIN_CHUNK_BYTES) of the stream before decoding it. */
 const CHUNK_MS = 500;
 const MIN_CHUNK_BYTES = 4096;
@@ -59,17 +61,24 @@ export function createStreamTap(ctx: AudioContext, fetchImpl: typeof fetch = (..
     // Decodes run one after another so chunks are scheduled in order.
     let decoding: Promise<void> = Promise.resolve();
 
+    // Bytes after the last whole frame of the previous chunk.
+    let carry: Uint8Array = new Uint8Array(0);
+
     const flush = () => {
-      const buf = new Uint8Array(bytes);
-      let o = 0;
+      const buf = new Uint8Array(carry.length + bytes);
+      buf.set(carry);
+      let o = carry.length;
       for (const p of parts) {
         buf.set(p, o);
         o += p.length;
       }
       parts = [];
       bytes = 0;
+      const { frames, rest } = splitFrames(buf);
+      carry = rest;
+      if (!frames) return;
       decoding = decoding.then(() =>
-        ctx.decodeAudioData(buf.buffer).then(
+        ctx.decodeAudioData(frames.buffer as ArrayBuffer).then(
           (audio) => {
             if (signal.aborted) return;
             stats.chunks++;
