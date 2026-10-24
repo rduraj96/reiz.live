@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
+import { syncMediaSession } from "@/lib/audio/mediaSession";
 import { addRecent } from "@/lib/library/recents";
 import { usePlayer } from "@/store/player";
 
@@ -12,6 +13,18 @@ export function togglePlay() {
   if (status === "playing") engine.pause();
   else if (status === "paused" || status === "blocked") void engine.play();
   else if (current && status !== "loading") void engine.load(current);
+}
+
+const mediaActions = {
+  play: togglePlay,
+  pause: () => getAudioEngine().pause(),
+  next: () => usePlayer.getState().next(),
+  prev: () => usePlayer.getState().prev(),
+};
+
+function syncFromStore() {
+  const { current, status } = usePlayer.getState();
+  syncMediaSession(current, status, mediaActions);
 }
 
 /** The single place where store and audio engine are kept in sync. Mount once. */
@@ -34,7 +47,9 @@ export function useEngineBridge() {
       engine.on("failed", (station) => store.getState().reportFailure(station)),
     ];
 
+    syncFromStore();
     const unsubscribe = store.subscribe((state, prev) => {
+      if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.muted !== prev.muted) engine.setMuted(state.muted);
       if (state.current && state.current !== prev.current) void engine.load(state.current);
