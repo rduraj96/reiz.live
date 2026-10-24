@@ -1,4 +1,5 @@
 import type { Station } from "@/lib/radio/types";
+import { createStreamTap, type StreamTap } from "./tap";
 
 export type AudioEngineEvent = "playing" | "paused" | "blocked" | "failed";
 
@@ -12,6 +13,10 @@ export interface AudioEngine {
   readonly analyser: AnalyserNode | null;
   /** The playing element, for diagnostics only. */
   readonly element: HTMLAudioElement | null;
+  /** The silent second stream feeding the visualizer where Web Audio hears nothing (iOS), for diagnostics only. */
+  readonly tap: StreamTap | null;
+  /** Diagnostics: act as if Web Audio can't hear the stream, so the tap runs here too (`?debug=tap`). */
+  forceTap(): void;
   on(event: AudioEngineEvent, cb: (station: Station) => void): () => void;
 }
 
@@ -23,6 +28,10 @@ export const TUNING_HOLD_MS = 3000;
 const STREAM_TUNING_GAIN = 0.08;
 const STATIC_TUNING_GAIN = 0.45;
 const GAIN_TIME_CONSTANT = 0.05;
+/** How often the probe checks whether Web Audio can hear the playing stream. */
+const PROBE_MS = 250;
+/** A playing stream the probe hears nothing from for this long means this browser hides it from Web Audio (iOS). */
+const DEAF_AFTER_MS = 3000;
 
 export type AudioEngineDeps = {
   createAudio?: () => HTMLAudioElement;
@@ -68,6 +77,13 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   // `paused` was already emitted for the current load: the element's own pause event must not repeat it.
   let pausedEmitted = false;
   let stallTimer: ReturnType<typeof setTimeout> | null = null;
+  // Web Audio can't hear the stream here: the visualizer reads from `tap` instead. Cleared if the probe ever hears it.
+  let probe: AnalyserNode | null = null;
+  let probeData = new Uint8Array(0);
+  let deafFor = 0;
+  let deaf = false;
+  let forcedDeaf = false;
+  let tap: StreamTap | null = null;
 
   function applyGains() {
     if (!ctx || !streamGain || !staticGain) return;
@@ -164,6 +180,37 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
     return src;
   }
 
+  /**
+   * Runs every PROBE_MS once the graph exists: decides whether Web Audio hears the stream, and keeps the tap running
+   * only while it's needed — playing, page visible, and the stream deaf to Web Audio.
+   */
+  function probeTick() {
+    const el = audio;
+    const playingNow = !!el && !el.paused && !pending && !paused && current !== null;
+    if (probe && playingNow && typeof probe.getByteTimeDomainData === "function") {
+      if (probeData.length !== probe.fftSize) probeData = new Uint8Array(probe.fftSize);
+      probe.getByteTimeDomainData(probeData);
+      let heard = false;
+      for (let i = 0; i < probeData.length; i++) {
+        if (Math.abs(probeData[i] - 128) > 1) {
+          heard = true;
+          break;
+        }
+      }
+      if (heard) {
+        deafFor = 0;
+        deaf = forcedDeaf;
+      } else if ((deafFor += PROBE_MS) >= DEAF_AFTER_MS) deaf = true;
+    } else deafFor = 0;
+
+    const hidden = typeof document !== "undefined" && document.hidden;
+    const want = deaf && playingNow && !hidden;
+    if (want && ctx && current && !tap?.running) {
+      tap ??= createStreamTap(ctx);
+      tap.start(current.streamUrl);
+    } else if (!want && tap?.running) tap.stop();
+  }
+
   // Wired once: MediaElementSource can only be created once per element.
   function ensureGraph(el: HTMLAudioElement) {
     if (ctx) return;
@@ -188,11 +235,21 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       hiss.connect(node);
       noise.start();
       node.connect(c.destination);
+      // The probe listens to the stream alone (no static), through a muted gain so it is always processed.
+      const p = c.createAnalyser();
+      p.fftSize = 256;
+      const probeMute = c.createGain();
+      probeMute.gain.value = 0;
+      stream.connect(p);
+      p.connect(probeMute);
+      probeMute.connect(c.destination);
       ctx = c;
       analyser = node;
+      probe = p;
       streamGain = stream;
       staticGain = hiss;
       applyGains();
+      setInterval(probeTick, PROBE_MS);
     } catch {
       // No Web Audio: playback still works, the visualizer just has no analyser.
     }
@@ -226,10 +283,17 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
 
   return {
     get analyser() {
-      return analyser;
+      return deaf && tap?.running ? tap.analyser : analyser;
     },
     get element() {
       return audio;
+    },
+    get tap() {
+      return tap;
+    },
+    forceTap() {
+      forcedDeaf = true;
+      deaf = true;
     },
     load(station) {
       const myToken = ++token;
@@ -237,6 +301,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       current = station;
       const el = ensureAudio();
       ensureGraph(el);
+      tap?.stop(); // the probe restarts it on the new stream once that plays
       el.src = station.streamUrl;
       return start(myToken, station);
     },

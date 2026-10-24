@@ -9,7 +9,9 @@ export function AudioDebug() {
   const [lines, setLines] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!new URLSearchParams(window.location.search).has("debug")) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("debug")) return;
+    if (params.get("debug") === "tap") getAudioEngine().forceTap();
     let freq = new Uint8Array(0);
     let wave = new Uint8Array(0);
     const id = setInterval(() => {
@@ -44,6 +46,12 @@ export function AudioDebug() {
           `freq max ${fmax}  avg ${(fsum / freq.length).toFixed(1)}  wave dev ${dev}`,
         );
       } else out.push("no analyser (no Web Audio graph)");
+      const tap = getAudioEngine().tap;
+      out.push(
+        tap
+          ? `tap ${tap.running ? "on" : "off"}  chunks ${tap.stats.chunks}  fails ${tap.stats.failures}${tap.stats.gaveUp ? "  gave up" : ""}`
+          : "tap not needed",
+      );
       out.push(navigator.userAgent.replace(/^Mozilla\/5\.0 /, "").slice(0, 90));
       setLines(out);
     }, 500);

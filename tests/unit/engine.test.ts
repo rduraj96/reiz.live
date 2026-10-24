@@ -54,7 +54,8 @@ function setup() {
     createBuffer: vi.fn((_ch: number, len: number) => ({ getChannelData: () => new Float32Array(len) })),
     resume: vi.fn(() => Promise.resolve()),
     createMediaElementSource: vi.fn(() => source),
-    createAnalyser: vi.fn(() => analyser),
+    // The first analyser is the visualizer's; later ones (the deaf-stream probe) are separate nodes.
+    createAnalyser: vi.fn(() => (ctx.createAnalyser.mock.calls.length === 1 ? analyser : { fftSize: 0, connect: vi.fn() })),
   };
   const createContext = vi.fn(() => ctx as unknown as AudioContext);
   const engine = createAudioEngine({
@@ -329,7 +330,7 @@ describe("audio engine: tuning static", () => {
   it("builds a looping bandpass noise chain on first load", () => {
     const { engine, bufferSource, biquad, ctx } = setup();
     void engine.load(st("a"));
-    expect(ctx.createGain).toHaveBeenCalledTimes(2);
+    expect(ctx.createGain).toHaveBeenCalledTimes(3); // stream, static, and the probe's mute
     expect(bufferSource.loop).toBe(true);
     expect(bufferSource.start).toHaveBeenCalled();
     expect(biquad).toMatchObject({ type: "bandpass", frequency: { value: 2600 }, Q: { value: 0.4 } });
