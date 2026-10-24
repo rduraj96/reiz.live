@@ -15,7 +15,7 @@ Problems found:
 - The RECENT / SAVED / ABOUT nav items have no handlers.
 - Recents are held in memory only and are lost on reload.
 - `useAudioSetup` creates a new `AudioContext` on every station change and never closes the old one.
-- `threeSetup.ts` loads `/cubemap/*.jpg`, but the files are `.png`, so the env map 404s.
+- `threeSetup.ts` loads a `/cubemap/*.jpg` env map (the files are `.png`), but nothing uses it: the commented-out outer glass blob was its only consumer. `blobGeometry.ts` (CPU displacement) is also unused; the shader does the displacement.
 - `/api/stations` returns 201 for a successful GET.
 - Many stations fail under `crossOrigin="anonymous"`: no CORS header, or plain-HTTP streams on an HTTPS page.
 - No tests, and the README is still the template.
@@ -84,7 +84,7 @@ Problems found:
 - Split the analyser into bass, mid and treble bands with smoothing, so the blob moves with the beat.
 - Crossfade between idle and playing, and on station change.
 - No React re-render per audio frame; adaptive pixel ratio on mobile; pause rendering while the tab is hidden.
-- Fix the cubemap paths; delete unused `.glb`/`.hdr` files.
+- Remove the dead env map, the outer blob, `blobGeometry.ts`, the cubemap/texture folders and the unused `.glb`/`.hdr` files.
 - Honour `prefers-reduced-motion` with calmer motion.
 
 **UI:**
