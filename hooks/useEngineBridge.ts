@@ -41,6 +41,7 @@ export function useEngineBridge() {
     const initial = store.getState();
     engine.setVolume(initial.volume);
     engine.setMuted(initial.muted);
+    engine.setTuning(initial.tuning);
     if (initial.current && !initial.primed) void engine.load(initial.current);
 
     const offs = [
@@ -59,6 +60,7 @@ export function useEngineBridge() {
       if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.muted !== prev.muted) engine.setMuted(state.muted);
+      if (state.tuning !== prev.tuning) engine.setTuning(state.tuning);
       if (state.current !== prev.current || state.status !== prev.status) syncFromStore();
     });
 

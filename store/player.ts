@@ -17,6 +17,8 @@ type PlayerState = {
   status: PlayerStatus;
   genre: string;
   language: string;
+  /** The dial is being dragged: the engine plays tuning static. */
+  tuning: boolean;
   muted: boolean;
   volume: number;
   failedInARow: number;
@@ -37,6 +39,7 @@ type PlayerActions = {
   reportFailure: (station: Station) => void;
   setGenre: (g: string) => void;
   setLanguage: (l: string) => void;
+  setTuning: (on: boolean) => void;
   setStatus: (s: PlayerStatus) => void;
   toggleMute: () => void;
   setVolume: (v: number) => void;
@@ -61,7 +64,8 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     current: null,
     status: "idle",
     genre: "house",
-    language: "english",
+    language: "any",
+    tuning: false,
     muted: false,
     volume: 0.8,
     failedInARow: 0,
@@ -106,6 +110,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     },
     setGenre: (genre) => set({ genre }),
     setLanguage: (language) => set({ language }),
+    setTuning: (tuning) => set({ tuning }),
     setStatus: (status) =>
       set(status === "playing" ? { status, failedInARow: 0 } : { status }),
     toggleMute: () => set((s) => ({ muted: !s.muted })),

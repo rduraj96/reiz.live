@@ -25,9 +25,23 @@ beforeEach(() => {
 });
 
 describe("player store", () => {
+  it("toggles tuning without touching failedInARow", () => {
+    usePlayer.setState({ failedInARow: 2 });
+    expect(usePlayer.getState().tuning).toBe(false);
+    usePlayer.getState().setTuning(true);
+    expect(usePlayer.getState().tuning).toBe(true);
+    usePlayer.getState().setTuning(false);
+    expect(usePlayer.getState().tuning).toBe(false);
+    expect(usePlayer.getState().failedInARow).toBe(2);
+  });
+
+  it("defaults language to any", () => {
+    expect(usePlayer.getInitialState().language).toBe("any");
+  });
+
   it("has the documented defaults", () => {
     const s = usePlayer.getState();
-    expect(s).toMatchObject({ genre: "house", language: "english", volume: 0.8, status: "idle", muted: false });
+    expect(s).toMatchObject({ genre: "house", language: "any", volume: 0.8, status: "idle", muted: false });
   });
 
   it("openPanel opens on the given tab and closePanel keeps the tab", () => {
