@@ -23,6 +23,7 @@ type PlayerActions = {
   next: () => void;
   prev: () => void;
   markFailed: (station: Station) => void;
+  reportFailure: (station: Station) => void;
   setGenre: (g: string) => void;
   setLanguage: (l: string) => void;
   setStatus: (s: PlayerStatus) => void;
@@ -53,7 +54,10 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     listError: null,
 
     setList: (list) => set({ list, failedInARow: 0 }),
-    select: (station) => set({ current: station, status: "loading", failedInARow: 0 }),
+    select: (station) => {
+      if (get().current?.id === station.id) return; // re-selecting the active station is a no-op
+      set({ current: station, status: "loading", failedInARow: 0 });
+    },
     next: () => step(1),
     prev: () => step(-1),
     markFailed: (station) => {
@@ -69,6 +73,12 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
       // After removal the station that followed `station` sits at its old index.
       const following = rest[i % rest.length];
       set({ list: rest, failedInARow: failed, current: following, status: "loading" });
+    },
+    reportFailure: (station) => {
+      const { list, current } = get();
+      if (list.some((s) => s.id === station.id)) return get().markFailed(station);
+      // The list changed since this station loaded: keep it as current so Play retries.
+      if (current?.id === station.id) set({ status: "idle" });
     },
     setGenre: (genre) => set({ genre }),
     setLanguage: (language) => set({ language }),

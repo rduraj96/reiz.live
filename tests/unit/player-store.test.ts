@@ -98,11 +98,11 @@ describe("player store", () => {
   });
 
   it("setList and select reset failedInARow; markFailed does not", () => {
-    usePlayer.getState().setList([st("a"), st("b"), st("c")]);
+    usePlayer.getState().setList([st("a"), st("b"), st("c"), st("d")]);
     usePlayer.getState().markFailed(st("a"));
     usePlayer.getState().markFailed(st("b"));
     expect(usePlayer.getState().failedInARow).toBe(2);
-    usePlayer.getState().select(st("c"));
+    usePlayer.getState().select(st("d"));
     expect(usePlayer.getState().failedInARow).toBe(0);
     usePlayer.getState().setList([st("x"), st("y")]);
     usePlayer.getState().markFailed(st("x"));
@@ -137,5 +137,34 @@ describe("player store", () => {
     expect(usePlayer.getState().listError).toBe("Radio directory unavailable");
     usePlayer.getState().setListError(null);
     expect(usePlayer.getState().listError).toBeNull();
+  });
+
+  it("select is a no-op for the current station", () => {
+    const { setList, select, setStatus } = usePlayer.getState();
+    setList([st("a"), st("b")]);
+    select(st("a"));
+    setStatus("paused");
+    select(st("a"));
+    expect(usePlayer.getState().status).toBe("paused");
+  });
+
+  it("reportFailure marks a listed station failed", () => {
+    const { setList, select, reportFailure } = usePlayer.getState();
+    setList([st("a"), st("b")]);
+    select(st("a"));
+    reportFailure(st("a"));
+    expect(usePlayer.getState().current?.id).toBe("b");
+    expect(ids(usePlayer.getState().list)).toEqual(["b"]);
+  });
+
+  it("reportFailure for a station no longer in the list idles and keeps current", () => {
+    const { setList, select, reportFailure } = usePlayer.getState();
+    setList([st("a")]);
+    select(st("a"));
+    setList([st("x"), st("y")]);
+    reportFailure(st("a"));
+    expect(usePlayer.getState()).toMatchObject({ status: "idle" });
+    expect(usePlayer.getState().current?.id).toBe("a");
+    expect(ids(usePlayer.getState().list)).toEqual(["x", "y"]);
   });
 });

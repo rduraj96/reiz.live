@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { togglePlay } from "@/hooks/useEngineBridge";
 import { usePlayer } from "@/store/player";
 import { StationRow } from "./StationRow";
 
@@ -9,6 +10,7 @@ export function StationList({ onClose }: { onClose: () => void }) {
   const list = usePlayer((s) => s.list);
   const current = usePlayer((s) => s.current);
   const select = usePlayer((s) => s.select);
+  const status = usePlayer((s) => s.status);
 
   return (
     <motion.div
@@ -44,7 +46,8 @@ export function StationList({ onClose }: { onClose: () => void }) {
                 station={station}
                 active={station.id === current?.id}
                 onSelect={() => {
-                  select(station);
+                  if (station.id !== current?.id) select(station);
+                  else if (status === "paused" || status === "blocked" || status === "idle") togglePlay();
                   onClose();
                 }}
               />

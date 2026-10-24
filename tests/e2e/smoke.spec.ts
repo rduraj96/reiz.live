@@ -41,6 +41,21 @@ test("lists stations and plays the selected one", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
 });
 
+test("tapping the active station again resumes it after pause", async ({ page }) => {
+  await serveTone(page);
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: stations }));
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("listitem").first().click();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("listitem").first().click();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
+});
+
 test("empty list offers Any language", async ({ page }) => {
   const urls: string[] = [];
   await page.route("**/api/stations*", (route) => {

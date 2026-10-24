@@ -27,7 +27,7 @@ export function useEngineBridge() {
       engine.on("playing", () => store.getState().setStatus("playing")),
       engine.on("paused", () => store.getState().setStatus("paused")),
       engine.on("blocked", () => store.getState().setStatus("blocked")),
-      engine.on("failed", (station) => store.getState().markFailed(station)),
+      engine.on("failed", (station) => store.getState().reportFailure(station)),
     ];
 
     const unsubscribe = store.subscribe((state, prev) => {
