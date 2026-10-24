@@ -31,7 +31,8 @@ test("panels take over the whole screen with a giant title", async ({ page }) =>
   }).toPass();
 });
 
-test("the visualizer switch swaps 3D for 2D and remembers it", async ({ page }) => {
+test("the visualizer switch swaps 3D for 2D and remembers it", async ({ page, isMobile }) => {
+  test.skip(isMobile, "touch devices start on 2D (mobile.spec.ts covers that default)");
   await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
   await page.goto("/");
 

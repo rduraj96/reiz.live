@@ -63,6 +63,9 @@ async function focusRing(page: Page) {
   });
 }
 
+// WebKit's Tab skips buttons unless the OS "Tab to all controls" setting is on, and iPhones have no Tab key.
+const skipTabOnWebKit = (browserName: string) => test.skip(browserName === "webkit", "WebKit's Tab key skips buttons");
+
 async function expectFocusRings(page: Page, tabStops: number) {
   for (let i = 1; i <= tabStops; i++) {
     await page.keyboard.press("Tab");
@@ -92,7 +95,8 @@ test.describe("desktop", () => {
     await expectNoSevereViolations(page);
   });
 
-  test("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page, browserName }) => {
+    skipTabOnWebKit(browserName);
     await setup(page);
     await expectFocusRings(page, DESKTOP_TAB_STOPS);
   });
@@ -126,7 +130,8 @@ test.describe("390px", () => {
     await expectNoSevereViolations(page);
   });
 
-  test("tab stops show a focus ring", async ({ page }) => {
+  test("tab stops show a focus ring", async ({ page, browserName }) => {
+    skipTabOnWebKit(browserName);
     await setup(page);
     await expectFocusRings(page, MOBILE_TAB_STOPS);
   });

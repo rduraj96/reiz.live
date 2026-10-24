@@ -33,13 +33,16 @@ async function setup(page: Page) {
   await page.goto("/");
 }
 
-const setUser = (page: Page) =>
-  page.evaluate(() =>
+const setUser = async (page: Page) => {
+  // The auth store module may evaluate after `load` (WebKit): wait for its E2E hook.
+  await page.waitForFunction(() => "__useAuth" in window);
+  return page.evaluate(() =>
     (window as unknown as { __useAuth: { setState: (s: object) => void } }).__useAuth.setState({
       user: { id: "u1" },
       saved: [],
     }),
   );
+};
 
 test("SEARCH opens the Search tab and focuses the input", async ({ page }) => {
   await setup(page);

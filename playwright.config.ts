@@ -13,6 +13,8 @@ export default defineConfig({
         launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },
       },
     },
+    // Safari's engine at a phone size: the iOS-only bugs (deaf analyser, frame-aligned decoding, gradient ticks) live here.
+    { name: "webkit-iphone", use: { ...devices["iPhone 13"] } },
   ],
   webServer: [
     {

@@ -28,7 +28,9 @@ test.beforeEach(async ({ page }) => {
 test("share link primes the station off the dial: band Shared, plays on first tap", async ({ page }) => {
   await page.goto(`/s/${KNOWN_ID}`);
   await expect(page.getByTestId("intro")).toHaveCount(0, { timeout: 9000 });
-  await expect(page.locator("main").getByText("Fixture FM").and(page.locator(':not([aria-hidden="true"])')).first()).toBeVisible();
+  await expect(
+    page.locator("main").getByText("Fixture FM").and(page.locator(':not([aria-hidden="true"])')).filter({ visible: true }).first(),
+  ).toBeVisible();
   await expect(page.getByText("Shared", { exact: true })).toBeVisible();
   await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute(
     "aria-valuetext",
@@ -82,7 +84,8 @@ test("unknown id still renders a generic OG image", async ({ request }) => {
   expect(res.headers()["content-type"]).toContain("image/png");
 });
 
-test("share button copies the link and toasts", async ({ page, context }) => {
+test("share button copies the link and toasts", async ({ page, context, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit has no clipboard permissions to grant");
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.addInitScript(() => Object.defineProperty(navigator, "share", { value: undefined }));
   await page.goto(`/s/${KNOWN_ID}`);

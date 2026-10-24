@@ -28,8 +28,23 @@ createServer((req, res) => {
   const { pathname } = new URL(req.url ?? "/", `http://localhost:${PORT}`);
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (pathname === "/tone.wav") {
-    res.writeHead(200, { "Content-Type": "audio/wav" });
-    res.end(readFileSync(path.join(dir, "tone.wav")));
+    // Byte ranges: Safari won't play a static media file from a server that can't serve them.
+    const body = readFileSync(path.join(dir, "tone.wav"));
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
+    if (range) {
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+      res.writeHead(206, {
+        "Content-Type": "audio/wav",
+        "Accept-Ranges": "bytes",
+        "Content-Range": `bytes ${start}-${end}/${body.length}`,
+        "Content-Length": end - start + 1,
+      });
+      res.end(body.subarray(start, end + 1));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "audio/wav", "Accept-Ranges": "bytes", "Content-Length": body.length });
+    res.end(body);
     return;
   }
   const match = pathname.match(/^\/json\/stations\/byuuid\/(.+)$/);

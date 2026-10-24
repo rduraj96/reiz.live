@@ -94,7 +94,8 @@ test("choosing Deutsch in the language switch re-requests stations in German", a
   await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
 
   const trigger = page.getByRole("button", { name: /Language/ });
-  await expect(trigger.getByText("Lang ·")).toBeVisible();
+  // "Lang ·" is only shown from 760 px up.
+  if (page.viewportSize()!.width >= 760) await expect(trigger.getByText("Lang ·")).toBeVisible();
   await expect(trigger.getByText("Any", { exact: true })).toBeVisible();
   await trigger.click();
   const group = page.getByRole("radiogroup", { name: "Language" });
