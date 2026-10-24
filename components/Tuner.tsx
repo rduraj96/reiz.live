@@ -36,6 +36,8 @@ const DONE_PX = 0.5;
 const MOMENTUM = 220;
 const WHEEL_SNAP_MS = 140;
 const LOCK_MS = 500;
+/** A press becomes a drag (and starts tuning) only once it has moved this far: a tap never ducks the stream. */
+const DRAG_THRESHOLD_PX = 4;
 
 let handle: Handle | null = null;
 
@@ -139,7 +141,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     glide: null as null | { id: string; raf: number; tuning: boolean },
     wheelTimer: null as ReturnType<typeof setTimeout> | null,
     lockTimer: null as ReturnType<typeof setTimeout> | null,
-    drag: null as null | { lastX: number; lastT: number; vel: number },
+    drag: null as null | { startX: number; lastX: number; lastT: number; vel: number; moved: boolean },
   });
 
   // The imperative engine; built once (useState initialiser, never recomputed), reads everything through `r`.
@@ -304,7 +306,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       const { order } = s();
       const handled = ["ArrowRight", "ArrowUp", "ArrowLeft", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
       if (!handled.includes(key)) return false;
-      if (s().drag) return true; // the pointer owns the dial while dragging
+      if (s().drag?.moved) return true; // the pointer owns the dial while dragging
       const base = baseId();
       if (order.length === 0 || base === null) return true;
       const i = Math.max(0, order.indexOf(base));
@@ -339,20 +341,24 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
       if (e.button !== 0) return; // primary button only; touch and pen report 0
-      stopGlide();
-      stopWheel();
-      s().drag = { lastX: e.clientX, lastT: performance.now(), vel: 0 };
+      s().drag = { startX: e.clientX, lastX: e.clientX, lastT: performance.now(), vel: 0, moved: false };
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch {
         // Synthetic or already-released pointers can't be captured; dragging still works.
       }
-      startTuning();
     };
 
     const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
       const d = s().drag;
       if (!d) return;
+      if (!d.moved) {
+        if (Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD_PX) return;
+        d.moved = true;
+        stopGlide();
+        stopWheel();
+        startTuning();
+      }
       const now = performance.now();
       const dx = e.clientX - d.lastX;
       s().offset = clamp(s().offset - dx);
@@ -366,7 +372,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       const d = s().drag;
       if (!d) return;
       s().drag = null;
-      snap(s().offset + d.vel * MOMENTUM);
+      if (d.moved) snap(s().offset + d.vel * MOMENTUM); // a tap leaves any glide or wheel snap running
     };
 
     const glideTo = (id: string, opts?: GlideOpts) => {
@@ -396,7 +402,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     /** The current station changed outside the dial (panel pick, markFailed, share prime): glide there, no select. */
     const follow = (id: string) => {
       const st = s();
-      if (st.drag || st.wheelTimer || st.glide?.tuning) return;
+      if (st.drag?.moved || st.wheelTimer || st.glide?.tuning) return;
       if (positionOf(st.layout, id) === st.offset) return;
       animate(id, false, (arrived) => arrived && lock());
     };
@@ -404,7 +410,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     const dispose = () => {
       // Unmounting mid-tune drops the settle that would end tuning: end it here so the static stops.
       const st = s();
-      const wasTuning = !!(st.glide?.tuning || st.wheelTimer || st.drag);
+      const wasTuning = !!(st.glide?.tuning || st.wheelTimer || st.drag?.moved);
       stopGlide();
       stopWheel();
       if (s().lockTimer) clearTimeout(s().lockTimer!);

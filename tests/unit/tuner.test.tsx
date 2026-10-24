@@ -328,12 +328,37 @@ describe("Tuner", () => {
     expect(spies.setTuning).not.toHaveBeenCalled();
 
     act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 0 }));
+    act(() => void fireEvent.pointerMove(dial(), { clientX: 490, pointerId: 1 }));
     key("End");
+    act(() => vi.advanceTimersByTime(500));
+    act(() => void fireEvent.pointerMove(dial(), { clientX: 500, pointerId: 1 }));
     act(() => vi.advanceTimersByTime(500));
     act(() => void fireEvent.pointerUp(dial(), { clientX: 500, pointerId: 1 }));
     settle();
     expect(spies.select).toHaveBeenCalledTimes(1);
     expect(spies.select).toHaveBeenCalledWith(house[0]);
+  });
+
+  it("a tap on the dial without movement never starts tuning", () => {
+    render(<Tuner />);
+    act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 0 }));
+    act(() => void fireEvent.pointerMove(dial(), { clientX: 502, pointerId: 1 })); // jitter under the threshold
+    act(() => void fireEvent.pointerUp(dial(), { clientX: 502, pointerId: 1 }));
+    settle();
+    expect(spies.setTuning).not.toHaveBeenCalledWith(true);
+    expect(spies.select).not.toHaveBeenCalled();
+  });
+
+  it("a tap mid-glide lets the glide finish", () => {
+    render(<Tuner />);
+    key("End");
+    act(() => vi.advanceTimersByTime(50));
+    act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 0 }));
+    act(() => void fireEvent.pointerUp(dial(), { clientX: 500, pointerId: 1 }));
+    settle();
+    expect(spies.select).toHaveBeenCalledTimes(1);
+    expect(spies.select).toHaveBeenCalledWith(jazz[11]);
+    expect(usePlayer.getState().tuning).toBe(false);
   });
 
   it("scales line-mode wheel deltas to pixels", () => {
@@ -347,11 +372,13 @@ describe("Tuner", () => {
     render(<Tuner />);
     const el = dial();
     act(() => void fireEvent.pointerDown(el, { clientX: 500, pointerId: 1 }));
-    expect(spies.setTuning).toHaveBeenCalledWith(true);
+    // Tuning starts once the press moves past the tap threshold, not on pointerdown.
+    expect(spies.setTuning).not.toHaveBeenCalled();
     for (let x = 500; x >= 200; x -= 10) {
       act(() => vi.advanceTimersByTime(50)); // slow drag: little momentum
       act(() => void fireEvent.pointerMove(el, { clientX: x, pointerId: 1 }));
     }
+    expect(spies.setTuning).toHaveBeenCalledWith(true);
     act(() => vi.advanceTimersByTime(200));
     act(() => void fireEvent.pointerUp(el, { clientX: 200, pointerId: 1 }));
     expect(spies.select).not.toHaveBeenCalled();
