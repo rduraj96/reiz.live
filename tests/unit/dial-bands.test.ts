@@ -2,6 +2,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDialBands } from "@/hooks/useDialBands";
 import { genres } from "@/lib/catalog";
+import { recordDead } from "@/lib/library/deadStations";
 import type { Station } from "@/lib/radio/types";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
@@ -36,6 +37,7 @@ const take = (genre: string) => pending.find((p) => p.genre === genre)!;
 const band = (genre: string) => useDial.getState().bands.find((b) => b.genre === genre)!;
 
 beforeEach(() => {
+  localStorage.clear();
   pending = [];
   requested = [];
   maxConcurrent = 0;
@@ -187,5 +189,26 @@ describe("useDialBands", () => {
     expect(useDial.getState().firstBandReady).toBe(true);
     act(() => useDial.getState().resetForLanguage("german"));
     expect(useDial.getState().firstBandReady).toBe(true);
+  });
+});
+
+describe("useDialBands: stations that failed on this device", () => {
+  it("leaves them out of the band", async () => {
+    recordDead("a1");
+    useDial.setState({ needleGenre: g(5) });
+    renderHook(() => useDialBands());
+    await waitFor(() => expect(requested).toContain(g(5)));
+    await act(async () => respond(take(g(5)), [st("a0"), st("a1"), st("a2")]));
+    await waitFor(() => expect(band(g(5)).state).toBe("ready"));
+    expect(band(g(5)).stations.map((s) => s.id)).toEqual(["a0", "a2"]);
+  });
+
+  it("shows a band whose stations all failed as empty", async () => {
+    recordDead("b0");
+    useDial.setState({ needleGenre: g(5) });
+    renderHook(() => useDialBands());
+    await waitFor(() => expect(requested).toContain(g(5)));
+    await act(async () => respond(take(g(5)), [st("b0")]));
+    await waitFor(() => expect(band(g(5)).state).toBe("empty"));
   });
 });

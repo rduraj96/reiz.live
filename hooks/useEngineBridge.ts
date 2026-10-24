@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { syncMediaSession } from "@/lib/audio/mediaSession";
+import { recordDead } from "@/lib/library/deadStations";
 import { addRecent } from "@/lib/library/recents";
 import { usePlayer } from "@/store/player";
 
@@ -50,7 +51,10 @@ export function useEngineBridge() {
       }),
       engine.on("paused", () => store.getState().setStatus("paused")),
       engine.on("blocked", () => store.getState().setStatus("blocked")),
-      engine.on("failed", (station) => store.getState().reportFailure(station)),
+      engine.on("failed", (station) => {
+        recordDead(station.id);
+        store.getState().reportFailure(station);
+      }),
     ];
 
     syncFromStore();

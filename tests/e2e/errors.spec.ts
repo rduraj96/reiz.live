@@ -65,3 +65,34 @@ test("after every station fails, the readout says so", async ({ page }) => {
   });
   await expect(page.locator("main").getByRole("button", { name: "Retry" })).toBeHidden();
 });
+
+test("a station that failed here stays off the dial after a reload", async ({ page }) => {
+  await page.route("**/__test/tone.wav", (r) => r.fulfill({ status: 200, contentType: "audio/wav", body: tone }));
+  await page.route("**/__test/dead.wav", (r) => r.fulfill({ status: 404, body: "nope" }));
+  // House Two is dead; the rest play.
+  await page.route("**/api/stations*", (route) =>
+    route.fulfill({
+      json: stations(route.request().url()).map((s) => ({
+        ...s,
+        streamUrl: s.id === "house-two" ? "/__test/dead.wav" : "/__test/tone.wav",
+      })),
+    }),
+  );
+  await page.goto("/");
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
+  await dial(page).focus();
+  await page.keyboard.press("ArrowRight"); // House Two fails and the player moves on
+  await expect(page.locator("main").getByText("House Three", { exact: true }).filter({ visible: true }).first()).toBeVisible({
+    timeout: 15000,
+  });
+
+  await page.reload();
+  let deadRequests = 0;
+  page.on("request", (r) => r.url().includes("/__test/dead.wav") && deadRequests++);
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
+  await dial(page).focus();
+  await page.keyboard.press("ArrowRight"); // straight to House Three: House Two isn't on the dial any more
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House Three, House");
+  await expect(page.locator("[data-station-id='house-two']")).toHaveCount(0);
+  expect(deadRequests).toBe(0);
+});

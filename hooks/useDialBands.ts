@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { DIAL_SLOTS } from "@/lib/dial/layout";
+import { dropDead } from "@/lib/library/deadStations";
 import type { Station } from "@/lib/radio/types";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
@@ -124,8 +125,10 @@ async function load(
     const params = new URLSearchParams({ genre, language });
     const res = await fetch(`/api/stations?${params}`, { signal });
     if (!res.ok) return { state: "error" };
-    const list = (await res.json()) as Station[];
-    if (!Array.isArray(list) || list.length === 0)
+    const body = (await res.json()) as Station[];
+    // Stations that failed on this device in the last day stay off the dial (and so out of Shuffle).
+    const list = Array.isArray(body) ? dropDead(body) : [];
+    if (list.length === 0)
       return { state: "empty", stations: [] };
     return { state: "ready", stations: list.slice(0, DIAL_SLOTS) };
   } catch {
