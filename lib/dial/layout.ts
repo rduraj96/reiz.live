@@ -73,10 +73,12 @@ export function bandAt(layout: DialLayout, x: number): string | null {
   return layout.bands.find((b) => x >= b.start && x <= b.end)?.genre ?? null;
 }
 
+/** Frequencies span the genre-band slots only; the off-dial slot has none, so a station keeps its number when it comes or goes. */
 export function frequencyOf(layout: DialLayout, id: string): string | null {
-  const i = layout.ticks.findIndex((t) => t.stationId === id);
+  const genre = layout.ticks.filter((t) => t.band !== OFF_DIAL_GENRE);
+  const i = genre.findIndex((t) => t.stationId === id);
   if (i < 0) return null;
-  const n = layout.ticks.length;
+  const n = genre.length;
   if (n === 1) return FREQ_MIN.toFixed(1);
   return (FREQ_MIN + ((FREQ_MAX - FREQ_MIN) * i) / (n - 1)).toFixed(1);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
 import { ShareButton } from "./ShareButton";
@@ -26,6 +27,9 @@ const iconBtn =
 function useRolledFrequency(id: string | null) {
   const numRef = useRef<HTMLElement>(null);
   const sepRef = useRef<HTMLSpanElement>(null);
+  const rolledId = useRef<string | null>(null);
+  // The dial layout derives from the bands; re-read when it changes (the Tuner may not have built it yet).
+  const bands = useDial((s) => s.bands);
 
   useEffect(() => {
     const show = (text: string | null) => {
@@ -33,17 +37,21 @@ function useRolledFrequency(id: string | null) {
       if (sepRef.current) sepRef.current.textContent = text === null ? "" : SEP;
     };
     const target = id ? tunerApi.frequencyOf(id) : null;
-    if (target === null || reducedMotion()) {
+    const sameStation = rolledId.current === id;
+    rolledId.current = id;
+    // Same station, layout moved: land on the (new) number without another roll.
+    if (target === null || sameStation || reducedMotion()) {
       show(target);
       return;
     }
     let n = 0;
+    show(randomFreq());
     const timer = setInterval(() => {
       show(n++ >= ROLL_STEPS ? target : randomFreq());
       if (n > ROLL_STEPS) clearInterval(timer);
     }, ROLL_MS);
     return () => clearInterval(timer);
-  }, [id]);
+  }, [id, bands]);
 
   return { numRef, sepRef };
 }
@@ -63,7 +71,7 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
           className="text-xs uppercase tracking-[0.14em] text-muted [font-variant-numeric:tabular-nums]"
         >
           <b ref={numRef} className="font-normal text-accent" />
-          <span ref={sepRef} />
+          {rest.length > 0 && <span ref={sepRef} />}
           {rest.join(SEP)}
         </div>
         {message ? (

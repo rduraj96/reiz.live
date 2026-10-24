@@ -5,6 +5,7 @@ import { BigName } from "@/components/BigName";
 import { Readout } from "@/components/Readout";
 import { tunerApi } from "@/components/Tuner";
 import type { Station } from "@/lib/radio/types";
+import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 
 const station = (over: Partial<Station> = {}): Station => ({
@@ -76,6 +77,17 @@ describe("Readout", () => {
     usePlayer.setState({ current: station({ id: "x" }) });
     render(<Readout />);
     expect(freqLine().textContent).toBe("HOUSE · NL");
+  });
+
+  it("lands on the frequency once the layout provides it, without re-rolling", () => {
+    reduced = true;
+    const f = vi.spyOn(tunerApi, "frequencyOf").mockReturnValue(null);
+    usePlayer.setState({ current: station() });
+    render(<Readout />);
+    expect(freqLine().textContent).toBe("HOUSE · NL");
+    f.mockReturnValue("98.3");
+    act(() => useDial.setState({ bands: [...useDial.getState().bands] }));
+    expect(freqLine()).toHaveTextContent("98.3 · HOUSE · NL");
   });
 
   it("shuffle calls tunerApi.shuffle", () => {

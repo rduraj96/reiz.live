@@ -469,12 +469,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     handle = {
       glideTo: engine.glideTo,
       shuffle: engine.shuffle,
-      frequencyOf: (id) => {
-        const { layout } = r.current;
-        // The off-dial band is a stand-in tick, not a real frequency.
-        if (layout.ticks.find((t) => t.stationId === id)?.band === OFF_DIAL_GENRE) return null;
-        return frequencyOf(layout, id);
-      },
+      frequencyOf: (id) => frequencyOf(r.current.layout, id),
     };
     const mine = handle;
     return () => {

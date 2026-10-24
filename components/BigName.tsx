@@ -18,7 +18,11 @@ export function BigName() {
   const [shown, setShown] = useState("");
 
   useEffect(() => {
-    if (!name) return;
+    if (!name) {
+      // Back to empty: forget the last name so returning to it rises again.
+      const t = requestAnimationFrame(() => setShown(""));
+      return () => cancelAnimationFrame(t);
+    }
     let b = 0;
     const a = requestAnimationFrame(() => {
       b = requestAnimationFrame(() => setShown(name));

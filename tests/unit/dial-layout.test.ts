@@ -99,6 +99,11 @@ describe("dial layout", () => {
     expect(l.bands[0]).toMatchObject({ label: "Shared", genre: "__offdial", start: 0, end: 0, state: "ready" });
     expect(l.bands[1].start).toBe(72 + 60);
     expect(positionOf(l, "shared")).toBe(0);
-    expect(frequencyOf(l, "shared")).toBe("87.5");
+    expect(frequencyOf(l, "shared")).toBeNull();
+    const plain = buildLayout([band("a", "ready", 12), band("b", "ready", 12)]);
+    const withOff = buildLayout([band("a", "ready", 12), band("b", "ready", 12)], { station: st("shared"), label: "Shared" });
+    expect(frequencyOf(withOff, "a0")).toBe("87.5");
+    expect(frequencyOf(withOff, "b11")).toBe("108.0");
+    expect(frequencyOf(withOff, "a5")).toBe(frequencyOf(plain, "a5"));
   });
 });
