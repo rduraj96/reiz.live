@@ -30,8 +30,11 @@ async function setup(page: Page) {
     route.fulfill({ json: [{ code: "DE", name: "Germany" }] }),
   );
   await page.goto("/");
-  // Let the entrance animations finish so axe sees final colours/opacity.
-  await page.waitForTimeout(2000);
+  // Wait for the entrance animations to settle so axe sees final colours/opacity.
+  await page.waitForFunction(() => {
+    const animated = document.querySelectorAll('header, main > div[style*="opacity"], .pointer-events-auto[style*="opacity"]');
+    return animated.length > 0 && Array.from(animated).every((el) => getComputedStyle(el).opacity === "1");
+  });
 }
 
 async function expectNoSevereViolations(page: Page) {
@@ -42,19 +45,28 @@ async function expectNoSevereViolations(page: Page) {
   ).toEqual([]);
 }
 
-async function expectFocusRings(page: Page) {
-  let stops = 0;
-  for (let i = 0; i < 10; i++) {
+// Exact number of real tab stops in each layout (disabled controls are skipped).
+const DESKTOP_TAB_STOPS = 6;
+const MOBILE_TAB_STOPS = 4;
+
+async function focusRing(page: Page) {
+  return page.evaluate(() => {
+    const el = document.activeElement;
+    if (!el || el === document.body) return null;
+    const cs = getComputedStyle(el);
+    return { style: cs.outlineStyle, color: cs.outlineColor, width: cs.outlineWidth };
+  });
+}
+
+async function expectFocusRings(page: Page, tabStops: number) {
+  for (let i = 1; i <= tabStops; i++) {
     await page.keyboard.press("Tab");
-    const style = await page.evaluate(() => {
-      const el = document.activeElement;
-      return el && el !== document.body ? getComputedStyle(el).outlineStyle : null;
-    });
-    if (style === null) break; // focus left the document: fewer than 10 tab stops on this layout
-    stops++;
-    expect(style, `tab stop ${i + 1}`).not.toBe("none");
+    expect(await focusRing(page), `tab stop ${i} of ${tabStops}: focus left the page`).not.toBeNull();
+    // Poll: `transition-colors` animates outline-color for ~150ms after focus.
+    await expect
+      .poll(() => focusRing(page), { message: `tab stop ${i}` })
+      .toEqual({ style: "solid", color: "rgb(238, 38, 71)", width: "2px" });
   }
-  expect(stops).toBeGreaterThanOrEqual(4);
 }
 
 test.describe("desktop", () => {
@@ -72,7 +84,7 @@ test.describe("desktop", () => {
 
   test("tab stops show a focus ring", async ({ page }) => {
     await setup(page);
-    await expectFocusRings(page);
+    await expectFocusRings(page, DESKTOP_TAB_STOPS);
   });
 });
 
@@ -93,7 +105,7 @@ test.describe("390px", () => {
 
   test("tab stops show a focus ring", async ({ page }) => {
     await setup(page);
-    await expectFocusRings(page);
+    await expectFocusRings(page, MOBILE_TAB_STOPS);
   });
 });
 
