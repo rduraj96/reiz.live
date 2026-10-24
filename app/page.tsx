@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { Header } from "@/components/Header";
+import { LoginDialog } from "@/components/LoginDialog";
 import { PlayBar } from "@/components/PlayBar";
 import ScrollSelect from "@/components/ScrollSelect";
 import { StationStatus } from "@/components/StationStatus";
@@ -85,6 +86,7 @@ export default function Home() {
       </div>
 
       <PlayBar />
+      <LoginDialog />
     </main>
   );
 }

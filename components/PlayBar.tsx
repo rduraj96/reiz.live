@@ -4,6 +4,7 @@ import { useState } from "react";
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { flagEmoji } from "@/lib/flag";
 import { usePlayer } from "@/store/player";
+import { HeartButton } from "./HeartButton";
 import { LiveClock } from "./LiveClock";
 import { StationList } from "./StationList";
 import { StationMarquee } from "./StationMarquee";
@@ -79,12 +80,7 @@ export function PlayBar() {
       </div>
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">
-        {/* Heart slot: enabled in Task 9. */}
-        <button type="button" disabled aria-label="Save station" className={iconBtn}>
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 21s-8-5.3-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.7-8 11-8 11z" />
-          </svg>
-        </button>
+        <HeartButton station={current} className={iconBtn} />
       </div>
       {divider}
       <div className="h-full px-2 md:px-7 flex items-center justify-center">

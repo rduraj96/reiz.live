@@ -82,3 +82,14 @@ test("directory failure shows Retry", async ({ page }) => {
   await page.getByRole("button", { name: "Retry" }).click();
   await expect.poll(() => calls).toBeGreaterThan(before);
 });
+
+test("heart while logged out opens login (unavailable without Supabase env)", async ({ page }) => {
+  await serveTone(page);
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: stations }));
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("listitem").first().click();
+  await page.getByRole("button", { name: "Save station" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
+});
