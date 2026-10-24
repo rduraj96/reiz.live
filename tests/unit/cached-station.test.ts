@@ -20,12 +20,13 @@ describe("shareLinkStation", () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining("x"), err);
   });
 
-  it("logs and rethrows unexpected errors", async () => {
-    const err = new TypeError("bug");
+  it("maps any other error to null and logs it", async () => {
+    // In production, errors crossing the "use cache" boundary lose name and message.
+    const err = new Error();
     vi.mocked(byId).mockRejectedValue(err);
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    await expect(shareLinkStation("x")).rejects.toBe(err);
-    expect(log).toHaveBeenCalled();
+    expect(await shareLinkStation("x")).toBeNull();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("x"), err);
   });
 
   it("returns null for an unknown station without logging", async () => {

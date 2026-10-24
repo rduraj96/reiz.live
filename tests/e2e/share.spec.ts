@@ -24,6 +24,14 @@ test("unknown station id shows a friendly page with a link home", async ({ page 
   await expect(page).toHaveURL(/\/$/);
 });
 
+test("directory errors render not-found and a generic OG image", async ({ page, request }) => {
+  await page.goto("/s/fail-500");
+  await expect(page.getByRole("heading", { name: "Station not found" })).toBeVisible();
+  const res = await request.get("/s/fail-500/opengraph-image");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("image/png");
+});
+
 test("share page has og:title and an og:image that renders", async ({ page, request }) => {
   await page.goto(`/s/${KNOWN_ID}`);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Fixture FM on REIZDIO");

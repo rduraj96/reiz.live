@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { RadioBrowserError, byId } from "./client";
+import { byId } from "./client";
 import type { Station } from "./types";
 
 async function cachedById(id: string): Promise<Station | null> {
@@ -11,18 +11,15 @@ async function cachedById(id: string): Promise<Station | null> {
 }
 
 /**
- * Station for a share link; null when unknown or when the directory is unreachable.
- * Directory errors are logged and mapped to null; anything else is a bug and rethrown.
+ * Station for a share link; null when unknown or when the lookup fails for any reason.
+ * Errors crossing the "use cache" boundary lose their name and message in production,
+ * so they cannot be told apart: every failure is logged and degrades to "not found".
  */
 export async function shareLinkStation(id: string): Promise<Station | null> {
   try {
     return await cachedById(id);
   } catch (err) {
     console.error(`share link lookup failed for station ${id}`, err);
-    // Name check as well: instanceof may not survive the "use cache" boundary.
-    if (err instanceof RadioBrowserError || (err instanceof Error && err.name === "RadioBrowserError")) {
-      return null;
-    }
-    throw err;
+    return null;
   }
 }

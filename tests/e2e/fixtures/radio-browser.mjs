@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3101;
 export const KNOWN_ID = "11111111-aaaa-bbbb-cccc-000000000001";
+// The directory answers 500 for this id: share links must degrade to "not found".
+const FAIL_ID = "fail-500";
 
 const known = {
   stationuuid: KNOWN_ID,
@@ -31,6 +33,10 @@ createServer((req, res) => {
     return;
   }
   const match = pathname.match(/^\/json\/stations\/byuuid\/(.+)$/);
+  if (match && decodeURIComponent(match[1]) === FAIL_ID) {
+    res.writeHead(500).end();
+    return;
+  }
   if (match) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(decodeURIComponent(match[1]) === KNOWN_ID ? [known] : []));
