@@ -63,7 +63,7 @@ for (const width of [360, 390]) {
 
 test("blob, visualizer switch, heart, share and shuffle are at least 44x44", async ({ page }) => {
   await setup(page);
-  for (const name of [/^(Play|Pause)$/, /visualizer, switch/, "Save station", "Share station", "Surprise me"]) {
+  for (const name of [/^(Play|Pause)$/, /visualizer, switch/, "Ambient mode", "Save station", "Share station", "Surprise me"]) {
     const box = await page.getByRole("button", { name }).boundingBox();
     expect(box, String(name)).not.toBeNull();
     expect(box!.width, String(name)).toBeGreaterThanOrEqual(44);

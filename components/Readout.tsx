@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useStationMeta } from "@/hooks/useStationMeta";
+import { useAmbient } from "@/store/ambient";
 import { useDial } from "@/store/dial";
 import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
@@ -111,6 +112,17 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
       </div>
       <div className="col-start-2 row-start-1 -mr-2.5 flex gap-0.5 min-[760px]:mr-0">
         <VizToggle className={iconBtn} />
+        <button
+          type="button"
+          aria-label="Ambient mode"
+          title="Ambient mode (F)"
+          onClick={() => useAmbient.getState().enter({ fullscreen: true })}
+          className={iconBtn}
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+          </svg>
+        </button>
         <HeartButton station={current} className={iconBtn} />
         <ShareButton station={current} className={iconBtn} />
         <button type="button" aria-label="Surprise me" onClick={() => tunerApi.shuffle()} className={iconBtn}>
