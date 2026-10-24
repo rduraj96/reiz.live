@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDialBands } from "@/hooks/useDialBands";
 import { genres } from "@/lib/catalog";
@@ -55,7 +55,10 @@ beforeEach(() => {
     }),
   );
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("useDialBands", () => {
   it("requests the needle band and its two neighbours", async () => {
@@ -120,7 +123,9 @@ describe("useDialBands", () => {
     expect(band(g(4)).state).toBe("empty");
     expect(requested.filter((x) => x === g(5))).toHaveLength(1);
     act(() => useDial.getState().setNeedleGenre(g(9)));
-    await waitFor(() => expect(requested).toContain(g(9)));
+    await waitFor(() => expect(requested.length).toBe(6));
+    // Free the 3 slots so re-entering band 5 can start a request.
+    for (const k of [8, 9, 10]) await act(async () => respond(take(g(k)), many("b", 2)));
     act(() => useDial.getState().setNeedleGenre(g(5)));
     await waitFor(() => expect(requested.filter((x) => x === g(5))).toHaveLength(2));
   });
@@ -150,6 +155,26 @@ describe("useDialBands", () => {
     await waitFor(() => expect(pending.some((p) => p.language === "german" && p.genre === g(5))).toBe(true));
     const fresh = pending.find((p) => p.language === "german" && p.genre === g(5))!;
     await act(async () => respond(fresh, many("de", 2)));
+    expect(band(g(5)).stations[0].id).toBe("de0");
+  });
+
+  it("a language switch from the UI (setLanguage + resetForLanguage) with 3 requests pending loads the new language", async () => {
+    useDial.setState({ needleGenre: g(5) });
+    renderHook(() => useDialBands());
+    await waitFor(() => expect(requested.length).toBe(3));
+    // Exactly what LanguageSwitch.choose() does.
+    act(() => {
+      usePlayer.getState().setLanguage("german");
+      useDial.getState().resetForLanguage("german");
+    });
+    await waitFor(() =>
+      expect(pending.filter((p) => p.language === "german").map((p) => p.genre).sort()).toEqual(
+        [g(4), g(5), g(6)].sort(),
+      ),
+    );
+    const fresh = pending.find((p) => p.language === "german" && p.genre === g(5))!;
+    await act(async () => respond(fresh, many("de", 2)));
+    expect(band(g(5)).state).toBe("ready");
     expect(band(g(5)).stations[0].id).toBe("de0");
   });
 

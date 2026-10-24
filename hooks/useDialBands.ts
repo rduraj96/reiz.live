@@ -48,6 +48,14 @@ export function useDialBands() {
       }
 
       const language = dial.language;
+      // A reset can arrive without passing through the branch above (LanguageSwitch resets the dial
+      // itself): drop requests for any other language so they don't hold the slots.
+      for (const [key, c] of inFlight.current) {
+        if (key.slice(key.indexOf("|") + 1) !== language) {
+          c.abort();
+          inFlight.current.delete(key);
+        }
+      }
       // Needle band first, then its neighbours; anything outside this window is simply not queued.
       const window = [i, i - 1, i + 1].filter(
         (k) => k >= 0 && k < dial.bands.length,
