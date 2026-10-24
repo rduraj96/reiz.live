@@ -13,14 +13,14 @@ beforeEach(() => {
 describe("which failures mark a station dead", () => {
   it("a station that never started playing", () => {
     const r = rec();
-    r.loaded("a");
+    r.loaded();
     r.failed("a");
     expect(record).toHaveBeenCalledWith("a");
   });
 
   it("not one that played and then dropped (the listener's connection, a stall)", () => {
     const r = rec();
-    r.loaded("a");
+    r.loaded();
     r.playing("a");
     r.failed("a");
     expect(record).not.toHaveBeenCalled();
@@ -29,17 +29,17 @@ describe("which failures mark a station dead", () => {
   it("not while the device is offline", () => {
     online = false;
     const r = rec();
-    r.loaded("a");
+    r.loaded();
     r.failed("a");
     expect(record).not.toHaveBeenCalled();
   });
 
   it("a new load of the same station starts over", () => {
     const r = rec();
-    r.loaded("a");
+    r.loaded();
     r.playing("a");
-    r.loaded("b");
-    r.loaded("a");
+    r.loaded();
+    r.loaded();
     r.failed("a");
     expect(record).toHaveBeenCalledWith("a");
   });

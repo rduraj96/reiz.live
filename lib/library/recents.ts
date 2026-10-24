@@ -9,7 +9,7 @@ const listeners = new Set<() => void>();
 let cachedRaw: string | null = null;
 let cachedList: Station[] = EMPTY;
 
-function isStation(v: unknown): v is Station {
+export function isStation(v: unknown): v is Station {
   if (typeof v !== "object" || v === null) return false;
   const s = v as Record<string, unknown>;
   return typeof s.id === "string" && typeof s.name === "string" && typeof s.streamUrl === "string";

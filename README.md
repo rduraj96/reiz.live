@@ -14,7 +14,7 @@
 - **Tuning static.** While the needle moves, the stream ducks and band-passed noise rises, and the blob greys out and grains to match. It settles when the new station plays.
 - **Frequency intro.** A short loader sweeps 87.5 to 108.0 MHz while the app loads, then splits open along the needle. It is a quick fade under reduced motion.
 - **Genre bands and language.** Each band holds the top stations for that genre, and a language switch in the header re-tunes the dial.
-- **Search, Recent and Saved.** Name search across all of Radio Browser with an optional country filter, the last 20 stations (kept in localStorage, no account needed), and hearted stations. Email/password login via Supabase; saving while logged out opens login and completes the save afterwards.
+- **Search, Recent and Saved.** Name search across all of Radio Browser with an optional country filter, the last 20 stations (kept in localStorage, no account needed), and hearted stations, kept in this browser too. There are no accounts.
 - **Surprise me.** A shuffle button glides the dial to a random loaded station.
 - **Sharing.** `/s/[stationId]` opens the app on that station with a tap-to-play state (browsers block autoplay), and renders a generated OG image. The share button uses the native share sheet or copies the link.
 - **One layout, phone-ready.** The same layout works from 360 px up, with Media Session support for lock-screen and media-key controls.
@@ -60,11 +60,11 @@ List endpoints over-fetch about 150 candidates from Radio Browser and return the
 
 `visualizer/` is a framework-agnostic three.js scene: `createVisualizer` takes a container and an analyser getter and returns a handle to activate and dispose it. Each frame it reads the analyser, `analysis.ts` reduces the spectrum to levels, and they go straight into shader uniforms (see "The chrome blob" above).
 
-React only holds the UI: `store/player.ts` (station, list, language, play state, volume), `store/dial.ts` (bands, needle) and `store/auth.ts` are Zustand stores, `lib/library/recents.ts` persists recents, and `lib/library/saved.ts` maps `saved_stations` rows to stations.
+React only holds the UI: `store/player.ts` (station, list, language, play state, volume), `store/dial.ts` (bands, needle) and `store/ambient.ts` are Zustand stores; `lib/library/recents.ts` and `lib/library/saved.ts` keep recents and saved stations in the browser's localStorage (there are no accounts).
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · three.js 0.186 · Zustand · Supabase (`@supabase/ssr`) · Vitest + Testing Library · Playwright + axe
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · three.js 0.186 · Zustand · Vitest + Testing Library · Playwright + axe
 
 ## Local setup
 
@@ -78,9 +78,8 @@ npm run dev
 
 Open <http://localhost:3000>.
 
-- **Supabase (optional).** Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` to enable login and saved stations. If they are unset the app still runs, and login reports that it is unavailable.
-- **Database.** Apply `supabase/migrations/*.sql` in the Supabase SQL editor. The migration drops and recreates `saved_stations`, so existing saved data is not preserved. Row-level security restricts each user to their own rows.
-- **`RADIO_BROWSER_BASE`** selects the Radio Browser mirror and defaults to `https://de1.api.radio-browser.info`.
+- **No database or accounts.** Saved stations and recents live in the browser.
+- **`RADIO_BROWSER_BASE`** (optional) pins one Radio Browser server. Unset, the server falls back across the de1, de2 and fi1 mirrors.
 
 ## Scripts
 

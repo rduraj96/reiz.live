@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { useSearch } from "@/hooks/useSearch";
 import { useRecents } from "@/lib/library/recents";
+import { useSaved } from "@/lib/library/saved";
 import type { Station } from "@/lib/radio/types";
-import { signOut, useAuth } from "@/store/auth";
 import { usePlayer, type PanelTab } from "@/store/player";
 import { SearchBar, type Country } from "./SearchBar";
 import { StationRow } from "./StationRow";
-import { Takeover, stagger, staggerClass } from "./Takeover";
+import { Takeover, staggerClass } from "./Takeover";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "search", label: "Search" },
@@ -29,9 +29,7 @@ export function StationPanel() {
   const closePanel = usePlayer((s) => s.closePanel);
   const current = usePlayer((s) => s.current);
   const recents = useRecents();
-  const saved = useAuth((s) => s.saved);
-  const user = useAuth((s) => s.user);
-  const openLogin = useAuth((s) => s.openLogin);
+  const saved = useSaved();
   const openerRef = useRef<HTMLElement | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const tabRefs = useRef<Record<PanelTab, HTMLButtonElement | null>>({ search: null, recent: null, saved: null });
@@ -114,8 +112,7 @@ export function StationPanel() {
       return renderStations(search.results, "No stations found");
     }
     if (tab === "recent") return renderStations(recents, "Nothing played yet");
-    if (!user) return <Note>Log in to save stations</Note>;
-    return renderStations(saved, "No saved stations yet");
+    return renderStations(saved, "No saved stations yet. Tap the heart on any station to keep it here, in this browser.");
   }
 
   return (
@@ -174,17 +171,6 @@ export function StationPanel() {
           <SearchBar q={q} onQ={setQ} country={country} onCountry={setCountry} countries={countries} inputRef={searchRef} />
         )}
         {body()}
-        {tab === "saved" && (
-          <div className={`mt-8 ${staggerClass}`} style={stagger(4)}>
-            <button
-              type="button"
-              onClick={() => (user ? void signOut() : openLogin())}
-              className="min-h-12 rounded-full border border-foreground px-6 text-[13px] uppercase tracking-[0.12em] transition-colors hover:border-accent hover:text-accent"
-            >
-              {user ? "Log out" : "Log in"}
-            </button>
-          </div>
-        )}
       </div>
     </Takeover>
   );

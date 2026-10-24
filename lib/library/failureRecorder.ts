@@ -11,7 +11,8 @@ export function createFailureRecorder(
   const online = deps.online ?? (() => typeof navigator === "undefined" || navigator.onLine !== false);
   let played: string | null = null;
   return {
-    loaded(_id: string) {
+    /** A new load starts: whatever played before doesn't count for it. */
+    loaded() {
       played = null;
     },
     playing(id: string) {

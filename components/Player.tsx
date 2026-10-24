@@ -7,7 +7,6 @@ import { BigName } from "@/components/BigName";
 import { Intro } from "@/components/Intro";
 import { GenreStrip } from "@/components/GenreStrip";
 import { Header } from "@/components/Header";
-import { LoginDialog } from "@/components/LoginDialog";
 import { Readout } from "@/components/Readout";
 import { StationPanel } from "@/components/StationPanel";
 import { Toast } from "@/components/Toast";
@@ -104,7 +103,6 @@ export function Player({ initialStation }: { initialStation?: Station }) {
 
       <StationPanel />
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
-      <LoginDialog />
       <Toast />
       <Intro />
     </div>
