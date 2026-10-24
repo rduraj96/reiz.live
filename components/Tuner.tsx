@@ -158,7 +158,8 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
             root.setAttribute("aria-valuenow", String(st.order.indexOf(near!)));
             root.setAttribute("aria-valuetext", e.bandLabel ? `${e.station.name}, ${e.bandLabel}` : e.station.name);
           } else {
-            root.removeAttribute("aria-valuenow");
+            // A slider must always carry a value (axe aria-required-attr); the text says there's nothing to tune.
+            root.setAttribute("aria-valuenow", "0");
             root.setAttribute("aria-valuetext", "No stations");
           }
         }
@@ -540,11 +541,13 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     <div
       ref={rootRef}
       className={styles.tuner}
-      // aria-valuenow / aria-valuetext follow the needle and are written by paint(), not per render.
-      // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
+      // aria-valuenow / aria-valuetext follow the needle and are written by paint(), not per render; these constant
+      // initial values (never changed, so React never rewrites them) cover the moment before any station is near.
       role="slider"
       tabIndex={0}
       aria-label="Tune stations"
+      aria-valuenow={0}
+      aria-valuetext="No stations"
       aria-valuemin={0}
       aria-valuemax={Math.max(0, order.length - 1)}
       onKeyDown={(e) => {

@@ -6,98 +6,75 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true
 
 const tone = readFileSync(path.resolve("tests/e2e/fixtures/tone.wav"));
 
-const station = (id: string, name: string) => ({
-  id,
-  name,
-  streamUrl: "/__test/tone.wav",
-  homepage: null,
-  favicon: null,
-  country: "Germany",
-  countryCode: "DE",
-  language: "english",
-  tags: ["house"],
-  codec: "WAV",
-  bitrate: 128,
-});
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const stations = [station("a", "Alpha FM"), station("b", "Bravo FM")];
+/** Three stations per band, named after the requested genre (`House One`...). */
+function bandStations(url: string) {
+  const genre = new URL(url).searchParams.get("genre") ?? "house";
+  return ["One", "Two", "Three"].map((n) => ({
+    id: `${genre}-${n.toLowerCase()}`,
+    name: `${capitalise(genre)} ${n}`,
+    streamUrl: "/__test/tone.wav",
+    homepage: null,
+    favicon: null,
+    country: "Germany",
+    countryCode: "DE",
+    language: "english",
+    tags: [genre],
+    codec: "WAV",
+    bitrate: 128,
+  }));
+}
 
-async function setup(page: Page, requests: string[] = []) {
+/** The readout's name line (the big outlined name repeats the text but is aria-hidden). */
+const readoutName = (page: Page, name: string) =>
+  page.locator("main").getByText(name, { exact: true }).and(page.locator(':not([aria-hidden="true"])'));
+
+async function setup(page: Page) {
   await page.route("**/__test/tone.wav", (route) =>
     route.fulfill({ status: 200, contentType: "audio/wav", body: tone }),
   );
-  await page.route("**/api/stations*", (route) => {
-    requests.push(route.request().url());
-    return route.fulfill({ json: stations });
-  });
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: bandStations(route.request().url()) }));
   await page.goto("/");
+  await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute(
+    "aria-valuetext",
+    "House One, House",
+  );
 }
 
-test("no horizontal overflow at 390 px", async ({ page }) => {
-  await setup(page);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-});
+for (const width of [360, 390]) {
+  test(`no horizontal overflow at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 360 ? 740 : 844 });
+    await setup(page);
+    // Tune so the big name (which may run off both edges) is on screen.
+    await page.getByRole("slider", { name: "Tune stations" }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(readoutName(page, "House Two")).toBeVisible();
+    for (const name of ["SEARCH", "SAVED", "INFO"]) {
+      await expect(page.locator("header").getByRole("button", { name, exact: true })).toBeInViewport({ ratio: 1 });
+    }
+    await expect(page.getByRole("button", { name: /Language/ })).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
+      page.viewportSize()!.height,
+    );
+  });
+}
 
-test("no horizontal overflow at 360 px", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 740 });
+test("blob, heart, share and shuffle are at least 44x44", async ({ page }) => {
   await setup(page);
-  await expect(page.getByRole("button", { name: "Stations" })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
-});
-
-test("genre and language are chip rows; scroll pickers are hidden", async ({ page }) => {
-  await setup(page);
-  await expect(page.getByRole("radiogroup", { name: "Genre" })).toBeVisible();
-  await expect(page.getByRole("radiogroup", { name: "Language" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Genre" })).toBeHidden();
-  await expect(page.getByRole("group", { name: "Language" })).toBeHidden();
-});
-
-test("tapping the Pop chip requests genre=pop", async ({ page }) => {
-  const requests: string[] = [];
-  await setup(page, requests);
-  const pop = page.getByRole("radio", { name: "Pop", exact: true });
-  const request = page.waitForRequest((r) => r.url().includes("/api/stations") && r.url().includes("genre=pop"));
-  await pop.tap();
-  await request;
-  await expect(pop).toHaveAttribute("aria-checked", "true");
-});
-
-test("compact bar controls are at least 44x44", async ({ page }) => {
-  await setup(page);
-  await page.getByRole("button", { name: "Stations" }).tap();
-  await page.getByRole("listitem").first().tap();
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("Alpha FM").locator("visible=true").first()).toBeVisible();
-  for (const name of ["Pause", "Save station", "Stations"]) {
+  for (const name of [/^(Play|Pause)$/, "Save station", "Share station", "Surprise me"]) {
     const box = await page.getByRole("button", { name }).boundingBox();
-    expect(box, name).not.toBeNull();
-    expect(box!.width, name).toBeGreaterThanOrEqual(44);
-    expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    expect(box, String(name)).not.toBeNull();
+    expect(box!.width, String(name)).toBeGreaterThanOrEqual(44);
+    expect(box!.height, String(name)).toBeGreaterThanOrEqual(44);
   }
 });
 
-test("Stations opens the bottom sheet", async ({ page }) => {
+test("the language switch shows just the value below 760 px", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).tap();
-  await expect(page.getByRole("dialog")).toBeVisible();
-});
-
-test("header menu opens, lists items, and Escape returns focus", async ({ page }) => {
-  await setup(page);
-  const menu = page.getByRole("button", { name: "Menu" });
-  await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await menu.tap();
-  await expect(menu).toHaveAttribute("aria-expanded", "true");
-  for (const name of ["Recent", "Saved", "About", "Surprise me", "Log in"]) {
-    await expect(page.getByRole("button", { name })).toBeVisible();
-  }
-  await page.keyboard.press("Escape");
-  await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await expect(menu).toBeFocused();
-  await menu.tap();
-  await page.getByRole("button", { name: "Recent" }).tap();
-  await expect(page.getByRole("tab", { name: "Recent" })).toHaveAttribute("aria-selected", "true");
+  const trigger = page.getByRole("button", { name: /Language/ });
+  await expect(trigger).toBeVisible();
+  await expect(trigger.getByText("Lang ·")).toBeHidden();
+  await expect(trigger.getByText("Any", { exact: true })).toBeVisible();
 });

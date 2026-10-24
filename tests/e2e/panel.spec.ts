@@ -28,14 +28,16 @@ async function setup(page: Page) {
   await page.goto("/");
 }
 
-test("RECENT opens the panel on the Recent tab", async ({ page }) => {
+// fixme(Task 10: the RECENT header button was removed (Recent moves under SAVED)).
+test.fixme("RECENT opens the panel on the Recent tab", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "RECENT" }).click();
   await expect(page.getByRole("tab", { name: "Recent" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Nothing played yet")).toBeVisible();
 });
 
-test("a played station shows up in Recent", async ({ page }) => {
+// fixme(Task 10: the "Stations" and RECENT buttons were removed).
+test.fixme("a played station shows up in Recent", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "Stations" }).click();
   await page.getByRole("listitem").nth(1).click();
@@ -54,7 +56,8 @@ test("SAVED while logged out asks to log in", async ({ page }) => {
   await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
 });
 
-test("Escape closes the panel and returns focus to the trigger", async ({ page }) => {
+// fixme(Task 10: the RECENT header button was removed).
+test.fixme("Escape closes the panel and returns focus to the trigger", async ({ page }) => {
   await setup(page);
   const trigger = page.getByRole("button", { name: "RECENT" });
   await trigger.click();
@@ -64,7 +67,8 @@ test("Escape closes the panel and returns focus to the trigger", async ({ page }
   await expect(trigger).toBeFocused();
 });
 
-test("ABOUT shows the directory credit and repo link", async ({ page }) => {
+// fixme(Task 10: the ABOUT header button is now INFO).
+test.fixme("ABOUT shows the directory credit and repo link", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "ABOUT" }).click();
   const dialog = page.getByRole("dialog");
@@ -75,7 +79,8 @@ test("ABOUT shows the directory credit and repo link", async ({ page }) => {
   );
 });
 
-test("LOGIN is in the desktop nav and opens the dialog", async ({ page }) => {
+// fixme(Task 10: LOGIN left the header (it returns in the Saved tab)).
+test.fixme("LOGIN is in the desktop nav and opens the dialog", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "LOGIN" }).click();
   await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");

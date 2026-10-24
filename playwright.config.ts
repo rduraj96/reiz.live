@@ -3,7 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",
-  use: { baseURL: "http://localhost:3100" },
+  // Reduced motion by default so glides and letter rises settle instantly; intro.spec.ts opts back in.
+  use: { baseURL: "http://localhost:3100", reducedMotion: "reduce" },
   projects: [
     {
       name: "chromium",
