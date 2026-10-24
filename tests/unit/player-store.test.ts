@@ -85,6 +85,32 @@ describe("player store", () => {
     expect(s.current).toBeNull();
   });
 
+  it("markFailed on a station not in the list changes nothing", () => {
+    usePlayer.getState().setList([st("a"), st("b")]);
+    usePlayer.getState().select(st("a"));
+    usePlayer.getState().markFailed(st("b"));
+    const before = usePlayer.getState();
+    usePlayer.getState().markFailed(st("b"));
+    const after = usePlayer.getState();
+    expect(after.failedInARow).toBe(1);
+    expect(after.current?.id).toBe(before.current?.id);
+    expect(ids(after.list)).toEqual(["a"]);
+  });
+
+  it("setList and select reset failedInARow; markFailed does not", () => {
+    usePlayer.getState().setList([st("a"), st("b"), st("c")]);
+    usePlayer.getState().markFailed(st("a"));
+    usePlayer.getState().markFailed(st("b"));
+    expect(usePlayer.getState().failedInARow).toBe(2);
+    usePlayer.getState().select(st("c"));
+    expect(usePlayer.getState().failedInARow).toBe(0);
+    usePlayer.getState().setList([st("x"), st("y")]);
+    usePlayer.getState().markFailed(st("x"));
+    expect(usePlayer.getState().failedInARow).toBe(1);
+    usePlayer.getState().setList([st("z")]);
+    expect(usePlayer.getState().failedInARow).toBe(0);
+  });
+
   it("setStatus(playing) resets failedInARow", () => {
     usePlayer.getState().setList([st("a"), st("b")]);
     usePlayer.getState().markFailed(st("a"));

@@ -51,13 +51,14 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
     failedInARow: 0,
     listError: null,
 
-    setList: (list) => set({ list }),
-    select: (station) => set({ current: station, status: "loading" }),
+    setList: (list) => set({ list, failedInARow: 0 }),
+    select: (station) => set({ current: station, status: "loading", failedInARow: 0 }),
     next: () => step(1),
     prev: () => step(-1),
     markFailed: (station) => {
       const { list, failedInARow } = get();
       const i = list.findIndex((s) => s.id === station.id);
+      if (i === -1) return; // already handled (e.g. duplicate failure report)
       const rest = list.filter((s) => s.id !== station.id);
       const failed = failedInARow + 1;
       if (rest.length === 0 || failed >= MAX_FAILED_IN_A_ROW) {
@@ -65,7 +66,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
         return;
       }
       // After removal the station that followed `station` sits at its old index.
-      const following = rest[(i === -1 ? 0 : i) % rest.length];
+      const following = rest[i % rest.length];
       set({ list: rest, failedInARow: failed, current: following, status: "loading" });
     },
     setGenre: (genre) => set({ genre }),

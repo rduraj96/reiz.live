@@ -119,6 +119,17 @@ describe("audio engine", () => {
     expect(failed.mock.calls[0][0].id).toBe("a");
   });
 
+  it("a dead stream (error event + play rejection) emits failed once", async () => {
+    const { engine, audio, plays } = setup();
+    const failed = vi.fn();
+    engine.on("failed", failed);
+    const p = engine.load(st("a"));
+    audio.dispatchEvent(new Event("error"));
+    plays[0].reject(domErr("NotSupportedError"));
+    await p;
+    expect(failed).toHaveBeenCalledTimes(1);
+  });
+
   it("pause emits paused", async () => {
     const { engine, audio, plays } = setup();
     const paused = vi.fn();

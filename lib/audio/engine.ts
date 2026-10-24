@@ -42,8 +42,16 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
   let analyser: AnalyserNode | null = null;
   let current: Station | null = null;
   let token = 0;
+  let failedToken = 0;
   let volume = 1;
   let muted = false;
+
+  // A dead source fires `error` and rejects play(); report it once per load.
+  function emitFailed(forToken: number, station: Station) {
+    if (failedToken === forToken) return;
+    failedToken = forToken;
+    emit("failed", station);
+  }
 
   function ensureAudio(): HTMLAudioElement {
     if (audio) return audio;
@@ -56,7 +64,7 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       if (current) emit("playing", current);
     });
     el.addEventListener("error", () => {
-      if (current) emit("failed", current);
+      if (current) emitFailed(token, current);
     });
     audio = el;
     return el;
@@ -89,7 +97,8 @@ export function createAudioEngine(deps: AudioEngineDeps = {}): AudioEngine {
       if (myToken !== token) return;
       const name = err instanceof DOMException ? err.name : "";
       if (name === "AbortError") return;
-      emit(name === "NotAllowedError" ? "blocked" : "failed", station);
+      if (name === "NotAllowedError") emit("blocked", station);
+      else emitFailed(myToken, station);
     }
   }
 
