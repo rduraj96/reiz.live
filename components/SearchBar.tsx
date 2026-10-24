@@ -8,14 +8,16 @@ type SearchBarProps = {
   country: string | null;
   onCountry: (code: string | null) => void;
   countries: Country[];
+  inputRef?: React.Ref<HTMLInputElement>;
 };
 
 const field = "min-h-11 w-full border border-muted bg-background px-3 text-foreground focus:border-accent outline-none";
 
-export function SearchBar({ q, onQ, country, onCountry, countries }: SearchBarProps) {
+export function SearchBar({ q, onQ, country, onCountry, countries, inputRef }: SearchBarProps) {
   return (
     <div className="mb-3 flex flex-col gap-2">
       <input
+        ref={inputRef}
         type="search"
         aria-label="Search stations"
         placeholder="Search stations"

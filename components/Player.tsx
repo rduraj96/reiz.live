@@ -57,7 +57,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
   return (
     <div className="relative mx-auto flex h-dvh w-full max-w-[1200px] select-none flex-col overflow-hidden">
       <Header
-        onSearch={() => openPanel("browse")}
+        onSearch={() => openPanel("search")}
         onSaved={() => openPanel("saved")}
         onInfo={() => setAboutOpen(true)}
       />

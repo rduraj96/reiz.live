@@ -107,3 +107,8 @@ export function attachAuth(client: SupabaseClient | null): () => void {
     if (sb === client) sb = null;
   };
 }
+
+// E2E-only hook (set at build time by playwright.config.ts) so specs can mock a logged-in user.
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_E2E === "1") {
+  (window as unknown as { __useAuth?: typeof useAuth }).__useAuth = useAuth;
+}

@@ -41,11 +41,11 @@ describe("player store", () => {
 
   it("has the documented defaults", () => {
     const s = usePlayer.getState();
-    expect(s).toMatchObject({ genre: "house", language: "any", volume: 0.8, status: "idle", muted: false });
+    expect(s).toMatchObject({ language: "any", volume: 0.8, status: "idle", muted: false });
   });
 
   it("openPanel opens on the given tab and closePanel keeps the tab", () => {
-    expect(usePlayer.getState().panel).toEqual({ open: false, tab: "browse" });
+    expect(usePlayer.getState().panel).toEqual({ open: false, tab: "search" });
     usePlayer.getState().openPanel("saved");
     expect(usePlayer.getState().panel).toEqual({ open: true, tab: "saved" });
     usePlayer.getState().closePanel();
@@ -143,7 +143,7 @@ describe("player store", () => {
     expect(usePlayer.getState().failedInARow).toBe(0);
   });
 
-  it("toggleMute, setVolume (clamped), setGenre, setLanguage", () => {
+  it("toggleMute, setVolume (clamped), setLanguage", () => {
     const s = usePlayer.getState();
     s.toggleMute();
     expect(usePlayer.getState().muted).toBe(true);
@@ -151,16 +151,8 @@ describe("player store", () => {
     expect(usePlayer.getState().volume).toBe(1);
     s.setVolume(-1);
     expect(usePlayer.getState().volume).toBe(0);
-    s.setGenre("techno");
     s.setLanguage("german");
-    expect(usePlayer.getState()).toMatchObject({ genre: "techno", language: "german" });
-  });
-
-  it("setListError sets and clears the list error", () => {
-    usePlayer.getState().setListError("Radio directory unavailable");
-    expect(usePlayer.getState().listError).toBe("Radio directory unavailable");
-    usePlayer.getState().setListError(null);
-    expect(usePlayer.getState().listError).toBeNull();
+    expect(usePlayer.getState()).toMatchObject({ language: "german" });
   });
 
   it("select is a no-op for the current station", () => {
@@ -179,23 +171,6 @@ describe("player store", () => {
     reportFailure(st("a"));
     expect(usePlayer.getState().current?.id).toBe("b");
     expect(ids(usePlayer.getState().list)).toEqual(["b"]);
-  });
-
-  it("setGenreList stores the Browse list without touching the play queue", () => {
-    const { setList, setGenreList } = usePlayer.getState();
-    setList([st("q")]);
-    setGenreList([st("a"), st("b")]);
-    expect(ids(usePlayer.getState().genreList)).toEqual(["a", "b"]);
-    expect(ids(usePlayer.getState().list)).toEqual(["q"]);
-  });
-
-  it("markFailed also drops the dead station from the Browse list", () => {
-    const { setList, setGenreList, select, markFailed } = usePlayer.getState();
-    setGenreList([st("a"), st("b")]);
-    setList([st("a"), st("b")]);
-    select(st("a"));
-    markFailed(st("a"));
-    expect(ids(usePlayer.getState().genreList)).toEqual(["b"]);
   });
 
   it("reportFailure for an unlisted station toasts that it couldn't play", () => {

@@ -25,7 +25,7 @@ export default defineConfig({
       url: "http://localhost:3100",
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,
-      env: { RADIO_BROWSER_BASE: "http://localhost:3101" },
+      env: { RADIO_BROWSER_BASE: "http://localhost:3101", NEXT_PUBLIC_E2E: "1" },
     },
   ],
 });

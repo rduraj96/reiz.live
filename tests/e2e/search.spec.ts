@@ -18,16 +18,22 @@ const station = (id: string, name: string) => ({
   bitrate: 128,
 });
 
-const genreList = [station("a", "Alpha FM"), station("b", "Bravo FM")];
-const lofi = [station("l1", "Lofi One"), station("l2", "Lofi Two")];
+/** Band requests answer with three stations named after the genre, so each band is identifiable on the dial. */
+function bandStations(url: string) {
+  const genre = new URL(url).searchParams.get("genre") ?? "house";
+  const title = genre.charAt(0).toUpperCase() + genre.slice(1);
+  return ["one", "two", "three"].map((n) => station(`${genre}-${n}`, `${title} ${n}`));
+}
+
+const results = [station("house-two", "House two"), station("far-away", "Faraway FM")];
 
 async function setup(page: Page, random: { status: number; body: unknown } = { status: 200, body: station("r", "Random FM") }) {
   await page.route("**/__test/tone.wav", (route) =>
     route.fulfill({ status: 200, contentType: "audio/wav", body: tone }),
   );
   // Registered first; later, more specific routes win.
-  await page.route("**/api/stations*", (route) => route.fulfill({ json: genreList }));
-  await page.route("**/api/stations/search*", (route) => route.fulfill({ json: lofi }));
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: bandStations(route.request().url()) }));
+  await page.route("**/api/stations/search*", (route) => route.fulfill({ json: results }));
   await page.route("**/api/stations/random*", (route) =>
     route.fulfill({ status: random.status, json: random.body }),
   );
@@ -37,64 +43,64 @@ async function setup(page: Page, random: { status: number; body: unknown } = { s
   await page.goto("/");
 }
 
-// fixme(Task 10: the "Stations" button was removed with the play bar).
-test.fixme("typing in the panel search shows results, clearing restores the genre list", async ({ page }) => {
+test("typing in the panel search shows results, clearing removes them", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
-  await expect(page.getByRole("listitem")).toHaveCount(2);
-  await expect(page.getByRole("listitem").first()).toContainText("Alpha FM");
-
+  await page.getByRole("button", { name: "SEARCH" }).click();
   const search = page.getByRole("searchbox", { name: "Search stations" });
-  await search.fill("lofi");
-  await expect(page.getByRole("listitem").first()).toContainText("Lofi One");
+  await search.fill("far");
   await expect(page.getByRole("listitem")).toHaveCount(2);
-
+  await expect(page.getByRole("listitem").nth(1)).toContainText("Faraway FM");
   await search.fill("");
-  await expect(page.getByRole("listitem").first()).toContainText("Alpha FM");
+  await expect(page.getByRole("listitem")).toHaveCount(0);
 });
 
-// fixme(Task 10: the "Stations" button was removed with the play bar).
-test.fixme("country select is populated with All countries first", async ({ page }) => {
+test("country select is populated with All countries first", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("button", { name: "SEARCH" }).click();
   const options = page.getByRole("combobox", { name: "Country" }).locator("option");
   await expect(options).toHaveText(["All countries", "Germany", "France"]);
 });
 
-// fixme(Task 10: the "Stations" button was removed with the play bar).
-test.fixme("selecting a search result plays it", async ({ page }) => {
+test("picking a result that is on the dial moves the needle to it", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
-  await page.getByRole("searchbox", { name: "Search stations" }).fill("lofi");
-  await page.getByRole("listitem").nth(1).getByRole("button").first().click();
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("Lofi Two").first()).toBeVisible();
+  const dial = page.getByRole("slider", { name: "Tune stations" });
+  await expect(dial).toHaveAttribute("aria-valuetext", /^House one/);
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  await page.getByRole("searchbox", { name: "Search stations" }).fill("house");
+  await page.getByRole("listitem").first().getByRole("button").first().click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(dial).toHaveAttribute("aria-valuetext", /^House two/);
 });
 
-// fixme(Task 10: the "Stations" button was removed with the play bar).
-test.fixme("picking a search result keeps Browse's genre list", async ({ page }) => {
+test("picking a result that is not on the dial shows the off-dial band", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
-  const search = page.getByRole("searchbox", { name: "Search stations" });
-  await search.fill("lofi");
+  const dial = page.getByRole("slider", { name: "Tune stations" });
+  await expect(dial).toHaveAttribute("aria-valuetext", /^House one/);
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  await page.getByRole("searchbox", { name: "Search stations" }).fill("far");
   await page.getByRole("listitem").nth(1).getByRole("button").first().click();
-  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible({ timeout: 5000 });
+  // The off-dial band has an empty label, so the value text is the bare station name.
+  await expect(dial).toHaveAttribute("aria-valuetext", "Faraway FM");
+});
 
-  // Closing the panel cleared the query, so Browse is back on the genre list.
-  await page.getByRole("button", { name: "Stations" }).click();
-  await expect(search).toHaveValue("");
-  await search.fill("");
-  await expect(page.getByRole("listitem")).toHaveCount(2);
-  await expect(page.getByRole("listitem").first()).toContainText("Alpha FM");
+test("picking a result after playing starts it playing", async ({ page }) => {
+  await setup(page);
+  // Wait for the dial to prime its first station before tapping the blob.
+  await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute("aria-valuetext", /^House one/);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  await page.getByRole("searchbox", { name: "Search stations" }).fill("far");
+  await page.getByRole("listitem").nth(1).getByRole("button").first().click();
+  await expect(page.getByRole("slider", { name: "Tune stations" })).toHaveAttribute("aria-valuetext", "Faraway FM");
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
 });
 
 test("Surprise me spins the dial to a loaded station and plays it", async ({ page }) => {
   await setup(page);
   const dial = page.getByRole("slider", { name: "Tune stations" });
-  // This spec's mock returns the same two stations for every genre, so only the station name is asserted.
-  await expect(dial).toHaveAttribute("aria-valuetext", /^(Alpha|Bravo) FM, /);
+  await expect(dial).toHaveAttribute("aria-valuetext", /^House /);
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Surprise me" }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
-  await expect(dial).toHaveAttribute("aria-valuetext", /^(Alpha|Bravo) FM, /);
 });

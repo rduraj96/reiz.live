@@ -3,16 +3,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
 import { useSearch } from "@/hooks/useSearch";
-import { togglePlay } from "@/hooks/useEngineBridge";
 import { useRecents } from "@/lib/library/recents";
 import type { Station } from "@/lib/radio/types";
-import { useAuth } from "@/store/auth";
+import { signOut, useAuth } from "@/store/auth";
 import { usePlayer, type PanelTab } from "@/store/player";
 import { SearchBar, type Country } from "./SearchBar";
 import { StationRow } from "./StationRow";
 
 const TABS: { id: PanelTab; label: string }[] = [
-  { id: "browse", label: "Browse" },
+  { id: "search", label: "Search" },
   { id: "recent", label: "Recent" },
   { id: "saved", label: "Saved" },
 ];
@@ -27,23 +26,21 @@ export function StationPanel() {
   const { open, tab } = usePlayer((s) => s.panel);
   const openPanel = usePlayer((s) => s.openPanel);
   const closePanel = usePlayer((s) => s.closePanel);
-  const list = usePlayer((s) => s.list);
-  const genreList = usePlayer((s) => s.genreList);
   const current = usePlayer((s) => s.current);
-  const status = usePlayer((s) => s.status);
   const recents = useRecents();
   const saved = useAuth((s) => s.saved);
   const user = useAuth((s) => s.user);
   const openLogin = useAuth((s) => s.openLogin);
   const openerRef = useRef<HTMLElement | null>(null);
-  const tabRefs = useRef<Record<PanelTab, HTMLButtonElement | null>>({ browse: null, recent: null, saved: null });
+  const searchRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<Record<PanelTab, HTMLButtonElement | null>>({ search: null, recent: null, saved: null });
 
   const [q, setQ] = useState("");
   const [country, setCountry] = useState<string | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const countriesLoaded = useRef(false);
   const search = useSearch(q, country);
-  // A closed panel forgets its search, so reopening shows Browse's genre list.
+  // A closed panel forgets its search, so reopening starts with an empty search.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
@@ -63,11 +60,18 @@ export function StationPanel() {
       });
   }, [open]);
 
+  /**
+   * Once the user has started audio, a pick becomes the play queue and plays. Before that (only primed, or
+   * nothing playing yet) it is primed so the first tap on the blob starts it. The Tuner follows `current` itself.
+   */
   function pick(station: Station, stations: Station[]) {
-    const { setList, select } = usePlayer.getState();
-    if (stations !== list) setList(stations);
-    if (station.id !== current?.id) select(station);
-    else if (status === "paused" || status === "blocked" || status === "idle") togglePlay();
+    const { primed, status, setList, select, prime } = usePlayer.getState();
+    if (!primed && status !== "idle") {
+      setList(stations);
+      select(station);
+    } else {
+      prime(station);
+    }
     closePanel();
   }
 
@@ -97,27 +101,14 @@ export function StationPanel() {
   }
 
   function body() {
-    if (tab === "browse") {
-      if (!searching) return renderStations(genreList, "No stations loaded.");
+    if (tab === "search") {
+      if (!searching) return <p className="text-muted">Type at least two letters to search</p>;
       if (search.error) return <p className="text-muted">{search.error}</p>;
       if (search.results === null) return <p className="text-muted">Searching…</p>;
       return renderStations(search.results, "No stations found");
     }
     if (tab === "recent") return renderStations(recents, "Nothing played yet");
-    if (!user) {
-      return (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-muted">Log in to save stations</p>
-          <button
-            type="button"
-            onClick={() => openLogin()}
-            className="min-h-11 border border-foreground px-4 text-foreground hover:border-accent"
-          >
-            Log in
-          </button>
-        </div>
-      );
-    }
+    if (!user) return <p className="text-muted">Log in to save stations</p>;
     return renderStations(saved, "No saved stations yet");
   }
 
@@ -127,13 +118,18 @@ export function StationPanel() {
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
         <Dialog.Content
           aria-describedby={undefined}
-          onOpenAutoFocus={() => {
+          onOpenAutoFocus={(e) => {
             // Safari/Firefox leave activeElement on <body> after a mouse click, so fall back to the opening control.
             const active = document.activeElement;
             openerRef.current =
               active instanceof HTMLElement && active !== document.body && document.contains(active)
                 ? active
                 : visibleOpener(tab);
+            // Search is for typing: land in the input rather than on the first tabbable control.
+            if (tab === "search" && searchRef.current) {
+              e.preventDefault();
+              searchRef.current.focus();
+            }
           }}
           onCloseAutoFocus={(e) => {
             // No Dialog.Trigger (opened via the store), so hand focus back to the opener ourselves.
@@ -174,16 +170,31 @@ export function StationPanel() {
               );
             })}
           </div>
-          <div
-            role="tabpanel"
-            id="panel-tabpanel"
-            aria-labelledby={`panel-tab-${tab}`}
-            className="min-h-0 flex-1 overflow-y-auto"
-          >
-            {tab === "browse" && (
-              <SearchBar q={q} onQ={setQ} country={country} onCountry={setCountry} countries={countries} />
+          <div role="tabpanel" id="panel-tabpanel" aria-labelledby={`panel-tab-${tab}`} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {tab === "search" && (
+                <SearchBar
+                  q={q}
+                  onQ={setQ}
+                  country={country}
+                  onCountry={setCountry}
+                  countries={countries}
+                  inputRef={searchRef}
+                />
+              )}
+              {body()}
+            </div>
+            {tab === "saved" && (
+              <div className="mt-3 border-t border-muted pt-3">
+                <button
+                  type="button"
+                  onClick={() => (user ? void signOut() : openLogin())}
+                  className="min-h-11 border border-foreground px-4 text-foreground hover:border-accent"
+                >
+                  {user ? "Log out" : "Log in"}
+                </button>
+              </div>
             )}
-            {body()}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

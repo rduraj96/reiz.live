@@ -19,7 +19,7 @@ export function Header({ onSearch, onSaved, onInfo }: HeaderProps) {
       <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground min-[760px]:text-[28px]">REIZDIO</h1>
       <nav aria-label="Main" className="flex items-center gap-0.5">
         <LanguageSwitch className={chip} />
-        <button type="button" className={chip} data-panel-opener="browse" onClick={onSearch}>
+        <button type="button" className={chip} data-panel-opener="search" onClick={onSearch}>
           SEARCH
         </button>
         <button type="button" className={chip} data-panel-opener="saved" onClick={onSaved}>
