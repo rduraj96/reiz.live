@@ -5,21 +5,42 @@
 <p align="center">Live web radio with a 3D visualizer that moves to whatever you're listening to.<br>
 <a href="https://www.reiz.live">www.reiz.live</a></p>
 
-![REIZDIO with the station panel open](docs/screenshot.png)
+![REIZDIO tuned to a station](docs/screenshot.png)
 
 ## Features
 
-- **Live radio, visualized.** A three.js blob reacts to the stream in real time, split into bass, mid and treble bands. It crossfades between idle and playing, and calms down under `prefers-reduced-motion`.
-- **Pick by genre and language.** Scroll-pickers on desktop, chip rows on phones.
-- **Station panel.** Browse, Recent and Saved tabs in a side drawer (bottom sheet on phones). Name search across all of Radio Browser with an optional country filter.
-- **Surprise me.** Plays a random verified station from the current genre.
-- **Recent.** The last 20 stations, kept in localStorage. No account needed.
-- **Saved.** Heart a station to keep it. Email/password login via Supabase; saving while logged out opens login and completes the save afterwards.
+- **A radio dial, not a list.** Drag, scroll or use the arrow keys to tune across genre bands. The station name sits huge behind the blob, and a readout shows the frequency, genre, country and name.
+- **Liquid chrome blob.** A raymarched three.js blob reacts to the stream in real time: bass drives its lobes, kicks send a shockwave through it, snares and mids shift its colours. It is also the play and pause button. Under `prefers-reduced-motion` it moves less and drops the shockwave.
+- **Tuning static.** While the needle moves, the stream ducks and band-passed noise rises, and the blob greys out and grains to match. It settles when the new station plays.
+- **Frequency intro.** A short loader sweeps 87.5 to 108.0 MHz while the app loads, then splits open along the needle. It is a quick fade under reduced motion.
+- **Genre bands and language.** Each band holds the top stations for that genre, and a language switch in the header re-tunes the dial.
+- **Search, Recent and Saved.** Name search across all of Radio Browser with an optional country filter, the last 20 stations (kept in localStorage, no account needed), and hearted stations. Email/password login via Supabase; saving while logged out opens login and completes the save afterwards.
+- **Surprise me.** A shuffle button glides the dial to a random loaded station.
 - **Sharing.** `/s/[stationId]` opens the app on that station with a tap-to-play state (browsers block autoplay), and renders a generated OG image. The share button uses the native share sheet or copies the link.
-- **Phone-ready.** Compact play bar and Media Session support for lock-screen and media-key controls.
-- **Honest empty and error states.** Skeletons while stations verify, a clear message when a genre/language combo has nothing, with an "Any language" escape hatch.
+- **One layout, phone-ready.** The same layout works from 360 px up, with Media Session support for lock-screen and media-key controls.
+- **Honest empty and error states.** A band that fails to load says so with a Retry button, an empty band says it is empty, and the blob keeps breathing if Radio Browser is down.
 
 ## How it works
+
+### The tuner dial
+
+`lib/dial/layout.ts` is a pure layout model. Each genre band reserves 12 slots, filled with that band's top stations by votes. Station ticks sit a fixed distance apart and bands are separated by a gap, so the dial does not jump when stations arrive. An unloaded band draws as a faint labelled stretch with placeholder ticks. The frequencies are decorative: slots, not stations, are spread evenly across 87.5 to 108.0 over the whole dial, so a station keeps its number for a given language.
+
+Bands load lazily. `hooks/useDialBands.ts` waits for the needle to rest on a band, then loads that band and its two neighbours, with at most three requests in flight. Changing the language aborts pending requests and resets the dial. Band state lives in `store/dial.ts`. The dial is a `slider` for assistive tech, with keyboard support for arrows, Home, End and Page keys, and the playback queue follows the band under the needle.
+
+### The chrome blob
+
+`visualizer/analysis.ts` is pure and unit-tested. It turns the analyser's frequency data into 32 log-spaced bands from 30 Hz to 16 kHz, applies an automatic level control so quiet and loud streams both fill the range, and derives bass, mid, treble and snare levels. It also detects kicks, which feed a jelly squash spring and a flash.
+
+`visualizer/shaders.ts` raymarches the blob on a full-screen quad, and `visualizer/scene.ts` runs it through three.js on a transparent canvas. The spectrum goes in as a small data texture, so nothing about the audio passes through React state and there is no re-render per frame. Pixel ratio and raymarch steps are lower on coarse pointers, rendering pauses while the tab is hidden, and a CSS gradient disc replaces the blob if WebGL is unavailable.
+
+### Tuning static
+
+`lib/audio/engine.ts` has `setTuning(on)`. While tuning, the stream ducks and a looping band-passed noise source rises. The noise feeds the same analyser as the stream, so the blob's grainy look and the sound always match. The noise is created on the first user-started load, so nothing sounds before the user has started the audio. It fades out when the new station plays, or after 3 seconds.
+
+### The intro
+
+`components/Intro.tsx` shows on a first load of `/` and `/s/[id]`. The frequency reading follows real progress (fonts loaded, first band loaded, first blob frame drawn) through `lib/intro/progress.ts`, which guarantees a minimum of 1.6 s, a maximum of 6 s and a monotonic count. After the intro the first station is primed, and the first tap on the blob starts audio.
 
 ### Only streams the visualizer can read are listed
 
@@ -35,11 +56,11 @@ List endpoints over-fetch about 150 candidates from Radio Browser and return the
 
 ### Audio engine to visualizer
 
-`lib/audio/engine.ts` is a singleton that owns one `HTMLAudioElement` and one `AudioContext` + `AnalyserNode` for the lifetime of the app (the old version created a new context on every station change). It exposes `load`, `play`, `pause`, volume and mute, the analyser, and `playing` / `paused` / `blocked` / `failed` events (`blocked` means the browser wants a tap before audio may start; it never marks a station bad). `lib/audio/mediaSession.ts` mirrors it into the Media Session API.
+`lib/audio/engine.ts` is a singleton that owns one `HTMLAudioElement` and one `AudioContext` + `AnalyserNode` for the lifetime of the app (the old version created a new context on every station change). It exposes `load`, `play`, `pause`, `setTuning`, volume, the analyser, and `playing` / `paused` / `blocked` / `failed` events (`blocked` means the browser wants a tap before audio may start; it never marks a station bad). `lib/audio/mediaSession.ts` mirrors it into the Media Session API.
 
-`visualizer/` is a framework-agnostic three.js scene: `createVisualizer(container, getAnalyser)` returns `{ setActive, dispose }`. Each frame it reads the analyser, `bands.ts` reduces the spectrum to smoothed bass/mid/treble values, and they go straight into shader uniforms. Nothing about the audio passes through React state, so there is no re-render per frame. The renderer pauses while the tab is hidden and uses an adaptive pixel ratio on mobile.
+`visualizer/` is a framework-agnostic three.js scene: `createVisualizer` takes a container and an analyser getter and returns a handle to activate and dispose it. Each frame it reads the analyser, `analysis.ts` reduces the spectrum to levels, and they go straight into shader uniforms (see "The chrome blob" above).
 
-React only holds the UI: `store/player.ts` (station, list, genre, language, play state, volume) and `store/auth.ts` are Zustand stores, `lib/library/recents.ts` persists recents, and `lib/library/saved.ts` maps `saved_stations` rows to stations.
+React only holds the UI: `store/player.ts` (station, list, language, play state, volume), `store/dial.ts` (bands, needle) and `store/auth.ts` are Zustand stores, `lib/library/recents.ts` persists recents, and `lib/library/saved.ts` maps `saved_stations` rows to stations.
 
 ## Stack
 

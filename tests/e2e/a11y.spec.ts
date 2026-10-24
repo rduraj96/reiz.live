@@ -26,6 +26,7 @@ async function setup(page: Page) {
     route.fulfill({ status: 200, contentType: "audio/wav", body: tone }),
   );
   await page.route("**/api/stations*", (route) => route.fulfill({ json: stations }));
+  await page.route("**/api/stations/search*", (route) => route.fulfill({ json: stations }));
   await page.route("**/api/countries*", (route) =>
     route.fulfill({ json: [{ code: "DE", name: "Germany" }] }),
   );
@@ -82,11 +83,12 @@ test.describe("desktop", () => {
     await expectNoSevereViolations(page);
   });
 
-  // fixme(Task 13: the "Stations" button was removed with the play bar).
-  test.fixme("no serious axe violations with the panel open", async ({ page }) => {
+  test("no serious axe violations with the panel open", async ({ page }) => {
     await setup(page);
-    await page.getByRole("button", { name: "Stations" }).click();
+    await page.getByRole("button", { name: "SEARCH" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(400); // panel slide-in settles before axe samples colours
     await expectNoSevereViolations(page);
   });
 
@@ -95,18 +97,15 @@ test.describe("desktop", () => {
     await expectFocusRings(page, DESKTOP_TAB_STOPS);
   });
 
-  // fixme(Task 13: the genre picker was removed (the dial replaces it)).
-  test.fixme("genre picker is a keyboard radio group", async ({ page }) => {
+  test("the dial is a keyboard slider", async ({ page }) => {
     await setup(page);
-    const picker = page.getByRole("radiogroup", { name: "Genre" });
-    const checked = picker.getByRole("radio", { checked: true });
-    await expect(checked).toHaveText("House");
-    await checked.focus();
-    const request = page.waitForRequest((r) => r.url().includes("/api/stations?genre=dance"));
-    await page.keyboard.press("ArrowDown");
-    await request;
-    await expect(picker.getByRole("radio", { checked: true })).toHaveText("Dance");
-    await expect(picker.getByRole("radio", { checked: true })).toBeFocused();
+    const dial = page.getByRole("slider", { name: "Tune stations" });
+    await dial.focus();
+    await page.keyboard.press("Home");
+    const first = await dial.getAttribute("aria-valuenow");
+    await page.keyboard.press("ArrowRight");
+    await expect(dial).not.toHaveAttribute("aria-valuenow", first!);
+    await expect(dial).toBeFocused();
   });
 });
 
@@ -118,11 +117,12 @@ test.describe("390px", () => {
     await expectNoSevereViolations(page);
   });
 
-  // fixme(Task 13: the "Stations" button was removed with the play bar).
-  test.fixme("no serious axe violations with the panel open", async ({ page }) => {
+  test("no serious axe violations with the panel open", async ({ page }) => {
     await setup(page);
-    await page.getByRole("button", { name: "Stations" }).click();
+    await page.getByRole("button", { name: "SEARCH" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(400); // panel slide-in settles before axe samples colours
     await expectNoSevereViolations(page);
   });
 
@@ -132,32 +132,21 @@ test.describe("390px", () => {
   });
 });
 
-// fixme(Task 13: the "Stations" button was removed with the play bar).
-test.fixme("station rows are buttons", async ({ page }) => {
+test("station rows are buttons", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  await page.getByRole("searchbox", { name: "Search stations" }).fill("alpha");
   await expect(page.getByRole("button", { name: /Alpha FM/ })).toBeVisible();
 });
 
-// fixme(Task 13: the "Stations" button and the marquee were removed).
-test.fixme("reduced motion disables the marquee", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await setup(page);
-  await page.getByRole("button", { name: "Stations" }).click();
-  await page.getByRole("button", { name: /Alpha FM/ }).click();
-  const name = await page.locator(".animate-marquee").first().evaluate((el) => getComputedStyle(el).animationName);
-  expect(name).toBe("none");
-});
-
-// fixme(Task 13: the RECENT header button was removed).
-test.fixme("focus returns to the opener control even when the opener was not focused", async ({ page }) => {
+test("focus returns to the opener control even when the opener was not focused", async ({ page }) => {
   await setup(page);
   // Simulate Safari/Firefox: a mouse click leaves document.activeElement on body.
-  await page.getByRole("button", { name: "RECENT" }).evaluate((el) => {
+  await page.getByRole("button", { name: "SAVED" }).evaluate((el) => {
     el.addEventListener("mousedown", (e) => e.preventDefault());
   });
-  await page.getByRole("button", { name: "RECENT" }).click();
+  await page.getByRole("button", { name: "SAVED" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "RECENT" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "SAVED" })).toBeFocused();
 });
