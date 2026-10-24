@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AboutPanel } from "@/components/AboutPanel";
 import { BigName } from "@/components/BigName";
 import { Intro } from "@/components/Intro";
+import { GenreStrip } from "@/components/GenreStrip";
 import { Header } from "@/components/Header";
 import { LoginDialog } from "@/components/LoginDialog";
 import { Readout } from "@/components/Readout";
@@ -73,6 +74,7 @@ export function Player({ initialStation }: { initialStation?: Station }) {
           <BlobButton />
         </div>
         <Readout {...readout} />
+        <GenreStrip />
         <Tuner offDial={initialStation ? { station: initialStation, label: "Shared" } : undefined} />
       </main>
 

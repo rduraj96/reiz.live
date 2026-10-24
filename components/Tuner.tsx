@@ -23,6 +23,7 @@ type OffDial = { station: Station; label: string };
 type GlideOpts = { fromOffset?: number; prime?: boolean };
 type Handle = {
   glideTo: (id: string, opts?: GlideOpts) => void;
+  tuneBand: (genre: string) => void;
   shuffle: () => void;
   tuneNearest: () => void;
   frequencyOf: (id: string) => string | null;
@@ -45,6 +46,10 @@ let handle: Handle | null = null;
 export const tunerApi = {
   glideTo(stationId: string, opts?: GlideOpts) {
     handle?.glideTo(stationId, opts);
+  },
+  /** Glide to a genre band and play its first station, waiting for the band to load if needed. */
+  tuneBand(genre: string) {
+    handle?.tuneBand(genre);
   },
   shuffle() {
     handle?.shuffle();
@@ -138,7 +143,10 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     bandEls: new Map<string, HTMLElement[]>(),
     nearId: null as string | null,
     activeBand: null as string | null,
-    glide: null as null | { id: string; raf: number; tuning: boolean },
+    /** id is the target station, or null while gliding to a band that hasn't loaded yet. */
+    glide: null as null | { id: string | null; raf: number; tuning: boolean },
+    /** A band jump waiting for its band to load before it can pick a station. */
+    pendingBand: null as string | null,
     wheelTimer: null as ReturnType<typeof setTimeout> | null,
     lockTimer: null as ReturnType<typeof setTimeout> | null,
     drag: null as null | { startX: number; lastX: number; lastT: number; vel: number; moved: boolean },
@@ -222,14 +230,22 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     };
 
     /** Glide to a station; the target's x is re-read each frame so layout changes mid-glide are followed. */
-    const animate = (id: string, tuning: boolean, onDone: (arrived: boolean) => void) => {
+    const animate = (id: string, tuning: boolean, onDone: (arrived: boolean) => void) =>
+      animateTo(id, () => positionOf(s().layout, id), tuning, onDone);
+
+    const animateTo = (
+      id: string | null,
+      targetX: () => number | null,
+      tuning: boolean,
+      onDone: (arrived: boolean) => void,
+    ) => {
       stopGlide();
       const g = { id, raf: 0, tuning };
       s().glide = g;
       const reduced = reducedMotion();
       const step = () => {
         if (s().glide !== g) return;
-        const target = positionOf(s().layout, id);
+        const target = targetX();
         if (target === null) {
           s().glide = null;
           onDone(false);
@@ -259,6 +275,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
 
     /** A user (or intro/shuffle) tune: static on, glide, then load the settled station only. */
     const tuneTo = (id: string, prime = false) => {
+      s().pendingBand = null;
       stopWheel();
       startTuning();
       animate(id, true, (arrived) => {
@@ -287,7 +304,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     /** The station keys step from: the glide target while tuning, else the one under the needle. */
     const baseId = () => {
       const g = s().glide;
-      if (g?.tuning) return g.id;
+      if (g?.tuning && g.id) return g.id;
       return s().nearId ?? nearestStation(s().layout, s().offset)?.stationId ?? null;
     };
 
@@ -302,10 +319,47 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       return null;
     };
 
+    /** A pending band jump picks its band's first station once loaded, or gives up when the band is empty or failed. */
+    const resolveBand = () => {
+      const genre = s().pendingBand;
+      if (genre === null || s().glide) return;
+      const band = s().layout.bands.find((b) => b.genre === genre);
+      if (band?.state === "ready") {
+        const first = s().layout.ticks.find((t) => t.band === genre && t.stationId !== null)?.stationId;
+        if (first) {
+          tuneTo(first);
+          return;
+        }
+      }
+      if (!band || band.state === "ready" || band.state === "empty" || band.state === "error") {
+        s().pendingBand = null;
+        usePlayer.getState().setTuning(false);
+      }
+    };
+
+    /** Jump to a genre band (static on): glide to its start, then tune its first station once it has loaded. */
+    const tuneBand = (genre: string) => {
+      if (!s().layout.bands.some((b) => b.genre === genre)) return;
+      stopWheel();
+      startTuning();
+      s().pendingBand = genre;
+      animateTo(
+        null,
+        () => s().layout.bands.find((b) => b.genre === genre)?.start ?? null,
+        true,
+        () => resolveBand(),
+      );
+    };
+
+    const cancelBand = () => {
+      s().pendingBand = null;
+    };
+
     const onKey = (key: string): boolean => {
       const { order } = s();
       const handled = ["ArrowRight", "ArrowUp", "ArrowLeft", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
       if (!handled.includes(key)) return false;
+      cancelBand();
       if (s().drag?.moved) return true; // the pointer owns the dial while dragging
       const base = baseId();
       if (order.length === 0 || base === null) return true;
@@ -325,6 +379,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      cancelBand();
       stopGlide();
       startTuning();
       // Firefox reports line deltas (deltaMode 1); scale them to roughly pixels.
@@ -355,6 +410,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       if (!d.moved) {
         if (Math.abs(e.clientX - d.startX) < DRAG_THRESHOLD_PX) return;
         d.moved = true;
+        cancelBand();
         stopGlide();
         stopWheel();
         startTuning();
@@ -410,9 +466,10 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     const dispose = () => {
       // Unmounting mid-tune drops the settle that would end tuning: end it here so the static stops.
       const st = s();
-      const wasTuning = !!(st.glide?.tuning || st.wheelTimer || st.drag?.moved);
+      const wasTuning = !!(st.glide?.tuning || st.wheelTimer || st.drag?.moved || st.pendingBand);
       stopGlide();
       stopWheel();
+      cancelBand();
       if (s().lockTimer) clearTimeout(s().lockTimer!);
       s().drag = null;
       if (wasTuning) usePlayer.getState().setTuning(false);
@@ -427,6 +484,8 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       onPointerMove,
       onPointerUp,
       glideTo,
+      tuneBand,
+      resolveBand,
       shuffle,
       tuneNearest,
       follow,
@@ -481,6 +540,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       else st.offset += realStart(layout) - realStart(prev);
     }
     engine.paint();
+    engine.resolveBand(); // a band jump may have been waiting for this band to load
 
     if (currentId !== st.prevCurrentId) {
       st.prevCurrentId = currentId;
@@ -494,6 +554,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     root.addEventListener("wheel", engine.onWheel, { passive: false });
     handle = {
       glideTo: engine.glideTo,
+      tuneBand: engine.tuneBand,
       shuffle: engine.shuffle,
       tuneNearest: engine.tuneNearest,
       frequencyOf: (id) => frequencyOf(r.current.layout, id),

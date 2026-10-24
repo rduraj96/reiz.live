@@ -137,3 +137,15 @@ test("heart while logged out opens login (unavailable without Supabase env)", as
   await page.getByRole("button", { name: "Save station" }).click();
   await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
 });
+
+test("a genre preset glides the dial to that band and plays its first station", async ({ page }) => {
+  await setup(page);
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "House One, House");
+  const genres = page.getByRole("navigation", { name: "Genres" });
+  await expect(genres.getByRole("button", { name: "House" })).toHaveAttribute("aria-current", "true");
+
+  await genres.getByRole("button", { name: "Jazz" }).click();
+  await expect(dial(page)).toHaveAttribute("aria-valuetext", "Jazz One, Jazz", { timeout: 10000 });
+  await expect(genres.getByRole("button", { name: "Jazz" })).toHaveAttribute("aria-current", "true");
+  await expect(readoutName(page, "Jazz One")).toBeVisible();
+});
