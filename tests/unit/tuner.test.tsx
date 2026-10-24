@@ -85,6 +85,7 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("Tuner", () => {
@@ -256,7 +257,51 @@ describe("Tuner", () => {
     expect(spies.select).toHaveBeenCalledTimes(1);
     const picked = spies.select.mock.calls[0][0];
     expect([...house, ...techno, ...jazz]).toContain(picked);
-    vi.restoreAllMocks();
+  });
+
+  it("unmounting mid-glide, mid-wheel or mid-drag ends tuning", () => {
+    const glide = render(<Tuner />);
+    key("End");
+    act(() => vi.advanceTimersByTime(50));
+    expect(usePlayer.getState().tuning).toBe(true);
+    glide.unmount();
+    expect(usePlayer.getState().tuning).toBe(false);
+
+    const wheel = render(<Tuner />);
+    act(() => void fireEvent.wheel(dial(), { deltaY: 70 }));
+    expect(usePlayer.getState().tuning).toBe(true);
+    wheel.unmount();
+    expect(usePlayer.getState().tuning).toBe(false);
+
+    const drag = render(<Tuner />);
+    act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 0 }));
+    act(() => void fireEvent.pointerMove(dial(), { clientX: 400, pointerId: 1 }));
+    expect(usePlayer.getState().tuning).toBe(true);
+    drag.unmount();
+    expect(usePlayer.getState().tuning).toBe(false);
+    act(() => vi.advanceTimersByTime(3000));
+    expect(spies.select).not.toHaveBeenCalled();
+  });
+
+  it("ignores keys while dragging and non-primary buttons", () => {
+    render(<Tuner />);
+    act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 2 }));
+    expect(spies.setTuning).not.toHaveBeenCalled();
+
+    act(() => void fireEvent.pointerDown(dial(), { clientX: 500, pointerId: 1, button: 0 }));
+    key("End");
+    act(() => vi.advanceTimersByTime(500));
+    act(() => void fireEvent.pointerUp(dial(), { clientX: 500, pointerId: 1 }));
+    settle();
+    expect(spies.select).toHaveBeenCalledTimes(1);
+    expect(spies.select).toHaveBeenCalledWith(house[0]);
+  });
+
+  it("scales line-mode wheel deltas to pixels", () => {
+    render(<Tuner />);
+    act(() => void fireEvent.wheel(dial(), { deltaY: 9, deltaMode: 1 })); // 9 lines -> 144 px
+    settle();
+    expect(spies.select).toHaveBeenCalledWith(house[2]);
   });
 
   it("drag release glides to the nearest station and selects only it", () => {

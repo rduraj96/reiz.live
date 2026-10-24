@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   bandAt,
   buildLayout,
@@ -122,8 +122,8 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     drag: null as null | { lastX: number; lastT: number; vel: number },
   });
 
-  // The imperative engine; built once, reads everything through `r`.
-  const engine = useMemo(() => {
+  // The imperative engine; built once (useState initialiser, never recomputed), reads everything through `r`.
+  const [engine] = useState(() => {
     const s = () => r.current;
 
     const clamp = (x: number) => {
@@ -282,6 +282,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       const { order } = s();
       const handled = ["ArrowRight", "ArrowUp", "ArrowLeft", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
       if (!handled.includes(key)) return false;
+      if (s().drag) return true; // the pointer owns the dial while dragging
       const base = baseId();
       if (order.length === 0 || base === null) return true;
       const i = Math.max(0, order.indexOf(base));
@@ -302,7 +303,9 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       e.preventDefault();
       stopGlide();
       startTuning();
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      // Firefox reports line deltas (deltaMode 1); scale them to roughly pixels.
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      const delta = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
       s().offset = clamp(s().offset + delta);
       paint();
       stopWheel();
@@ -313,6 +316,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     };
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return; // primary button only; touch and pen report 0
       stopGlide();
       stopWheel();
       s().drag = { lastX: e.clientX, lastT: performance.now(), vel: 0 };
@@ -370,10 +374,14 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
     };
 
     const dispose = () => {
+      // Unmounting mid-tune drops the settle that would end tuning: end it here so the static stops.
+      const st = s();
+      const wasTuning = !!(st.glide?.tuning || st.wheelTimer || st.drag);
       stopGlide();
       stopWheel();
       if (s().lockTimer) clearTimeout(s().lockTimer!);
       s().drag = null;
+      if (wasTuning) usePlayer.getState().setTuning(false);
     };
 
     return {
@@ -389,7 +397,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       follow,
       dispose,
     };
-  }, []);
+  });
 
   // Sync refs with the new layout, keep the needle on the same spot, then follow external `current` changes.
   useLayoutEffect(() => {
