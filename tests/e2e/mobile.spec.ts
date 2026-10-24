@@ -61,9 +61,9 @@ for (const width of [360, 390]) {
   });
 }
 
-test("blob, heart, share and shuffle are at least 44x44", async ({ page }) => {
+test("blob, visualizer switch, heart, share and shuffle are at least 44x44", async ({ page }) => {
   await setup(page);
-  for (const name of [/^(Play|Pause)$/, "Save station", "Share station", "Surprise me"]) {
+  for (const name of [/^(Play|Pause)$/, /visualizer, switch/, "Save station", "Share station", "Surprise me"]) {
     const box = await page.getByRole("button", { name }).boundingBox();
     expect(box, String(name)).not.toBeNull();
     expect(box!.width, String(name)).toBeGreaterThanOrEqual(44);
@@ -77,4 +77,10 @@ test("the language switch shows just the value below 760 px", async ({ page }) =
   await expect(trigger).toBeVisible();
   await expect(trigger.getByText("Lang ·")).toBeHidden();
   await expect(trigger.getByText("Any", { exact: true })).toBeVisible();
+});
+
+test("phones start on the light 2D visualizer", async ({ page }) => {
+  await setup(page);
+  await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
+  await expect(page.getByRole("button", { name: /switch to 3D/ })).toBeVisible();
 });

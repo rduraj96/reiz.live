@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { BAND_COUNT, createAnalysis, stepAnalysis } from "./analysis";
 import { FIRST_FRAME_EVENT } from "./events";
+import { createSpectrumReader } from "./spectrum";
 import { blobFragmentShader, blobVertexShader } from "./shaders";
 
 export type Visualizer = {
@@ -45,6 +46,7 @@ export function createVisualizer(
     display: "block",
     pointerEvents: "none",
   });
+  canvas.dataset.viz = "3d";
 
   const spectrumBytes = new Uint8Array(BAND_COUNT);
   const spectrum = new THREE.DataTexture(spectrumBytes, BAND_COUNT, 1, THREE.RedFormat, THREE.UnsignedByteType);
@@ -96,7 +98,7 @@ export function createVisualizer(
   timer.connect(document);
 
   const analysis = createAnalysis();
-  let freq = new Uint8Array(0);
+  const reader = createSpectrumReader(getAnalyser);
   let active = false;
   let tuneTarget = 0;
   let tune = 0;
@@ -108,14 +110,8 @@ export function createVisualizer(
     const dt = Math.min(timer.getDelta(), MAX_DT);
     const t = timer.getElapsed();
 
-    const analyser = active ? getAnalyser() : null;
-    if (analyser) {
-      if (freq.length !== analyser.frequencyBinCount) freq = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(freq);
-      stepAnalysis(analysis, freq, analyser.context.sampleRate, dt, t);
-    } else {
-      stepAnalysis(analysis, null, 0, dt, t);
-    }
+    const read = reader.read(active, dt);
+    stepAnalysis(analysis, read?.freq ?? null, read?.sampleRate ?? 0, dt, t);
 
     tune += (tuneTarget - tune) * Math.min(1, (tuneTarget > tune ? TUNE_UP_RATE : TUNE_DOWN_RATE) * dt);
 

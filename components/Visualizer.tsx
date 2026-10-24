@@ -3,31 +3,47 @@
 import { useEffect, useRef, useState } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { usePlayer } from "@/store/player";
+import { useViz } from "@/store/visualizer";
 import { FIRST_FRAME_EVENT } from "@/visualizer/events";
+import type { Visualizer as Viz } from "@/visualizer/scene";
 
-/** Liquid chrome blob in a centred square. Mount once; nothing re-renders per frame. */
+type Create = typeof import("@/visualizer/scene").createVisualizer;
+
+/** Loads the renderer for a mode: 3D pulls in three.js, 2D is a plain canvas. Both only in the browser, after mount. */
+const loaders: Record<"2d" | "3d", () => Promise<Create>> = {
+  "3d": () => import("@/visualizer/scene").then((m) => m.createVisualizer),
+  "2d": () => import("@/visualizer/flat").then((m) => m.createFlatVisualizer),
+};
+
+/** The chrome blob (3D) or its light 2D take, in a centred square. Nothing re-renders per frame. */
 export function Visualizer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [fallback, setFallback] = useState(false);
+  const chosen = useViz((s) => s.mode);
+  // No WebGL: the 2D canvas stands in for the 3D blob.
+  const [noWebGL, setNoWebGL] = useState(false);
+  const mode = chosen === "3d" && noWebGL ? "2d" : chosen;
+
+  useEffect(() => useViz.getState().resolve(), []);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || mode === null) return;
 
     let cancelled = false;
     let teardown: (() => void) | null = null;
 
-    // three.js loads only in the browser, after mount.
-    import("@/visualizer/scene")
-      .then(({ createVisualizer }) => {
+    loaders[mode]()
+      .then((create) => {
         if (cancelled) return;
-        let viz;
+        let viz: Viz;
         try {
-          viz = createVisualizer(container, () => getAudioEngine().analyser, {
+          viz = create(container, () => getAudioEngine().analyser, {
             reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
           });
         } catch {
-          setFallback(true); // No WebGL: a CSS disc stands in for the blob.
+          if (mode === "3d") setNoWebGL(true);
+          else setFallback(true); // Not even Canvas 2D: a CSS disc stands in for the blob.
           return;
         }
         const sync = (state: ReturnType<typeof usePlayer.getState>) => {
@@ -49,7 +65,7 @@ export function Visualizer() {
       cancelled = true;
       teardown?.();
     };
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     if (fallback) window.dispatchEvent(new Event(FIRST_FRAME_EVENT));

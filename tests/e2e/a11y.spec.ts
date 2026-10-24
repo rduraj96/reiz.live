@@ -49,10 +49,10 @@ async function expectNoSevereViolations(page: Page) {
 }
 
 // Exact number of real tab stops (disabled controls are skipped); one layout at every width:
-// LanguageSwitch, SEARCH, SAVED, INFO, the blob button, heart, share, shuffle, the genre presets (one roving stop) and the dial. The intro primes the
+// LanguageSwitch, SEARCH, SAVED, INFO, the blob button, the 2D/3D switch, heart, share, shuffle, the genre presets (one roving stop) and the dial. The intro primes the
 // first station, which enables heart and share; the language options stay hidden while the popover is closed.
-const DESKTOP_TAB_STOPS = 10;
-const MOBILE_TAB_STOPS = 10;
+const DESKTOP_TAB_STOPS = 11;
+const MOBILE_TAB_STOPS = 11;
 
 async function focusRing(page: Page) {
   return page.evaluate(() => {

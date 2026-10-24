@@ -7,6 +7,7 @@ import { usePlayer } from "@/store/player";
 import { HeartButton } from "./HeartButton";
 import { ShareButton } from "./ShareButton";
 import { tunerApi } from "./Tuner";
+import { VizToggle } from "./VizToggle";
 
 const ROLL_STEPS = 8;
 const ROLL_MS = 38;
@@ -98,6 +99,7 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
         )}
       </div>
       <div className="flex gap-0.5">
+        <VizToggle className={iconBtn} />
         <HeartButton station={current} className={iconBtn} />
         <ShareButton station={current} className={iconBtn} />
         <button type="button" aria-label="Surprise me" onClick={() => tunerApi.shuffle()} className={iconBtn}>

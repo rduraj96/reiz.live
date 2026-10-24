@@ -30,3 +30,18 @@ test("panels take over the whole screen with a giant title", async ({ page }) =>
     expect(await dialog.boundingBox()).toEqual({ x: 0, y: 0, width: 1920, height: 1080 });
   }).toPass();
 });
+
+test("the visualizer switch swaps 3D for 2D and remembers it", async ({ page }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+
+  await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(1);
+  await page.getByRole("button", { name: /switch to 2D/ }).click();
+  await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
+  await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
+  await page.getByRole("button", { name: /switch to 3D/ }).click();
+  await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(1);
+});
