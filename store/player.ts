@@ -28,6 +28,7 @@ type PlayerActions = {
   setStatus: (s: PlayerStatus) => void;
   toggleMute: () => void;
   setVolume: (v: number) => void;
+  setListError: (e: string | null) => void;
 };
 
 export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
@@ -75,5 +76,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()((set, get) => {
       set(status === "playing" ? { status, failedInARow: 0 } : { status }),
     toggleMute: () => set((s) => ({ muted: !s.muted })),
     setVolume: (v) => set({ volume: Math.min(1, Math.max(0, v)) }),
+    setListError: (listError) => set({ listError }),
   };
 });

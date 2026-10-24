@@ -131,4 +131,11 @@ describe("player store", () => {
     s.setLanguage("german");
     expect(usePlayer.getState()).toMatchObject({ genre: "techno", language: "german" });
   });
+
+  it("setListError sets and clears the list error", () => {
+    usePlayer.getState().setListError("Radio directory unavailable");
+    expect(usePlayer.getState().listError).toBe("Radio directory unavailable");
+    usePlayer.getState().setListError(null);
+    expect(usePlayer.getState().listError).toBeNull();
+  });
 });
