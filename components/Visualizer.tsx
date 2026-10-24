@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { usePlayer } from "@/store/player";
 
-/** Full-viewport audio-reactive blob. Mount once; nothing re-renders per frame. */
+const FIRST_FRAME_EVENT = "visualizer-first-frame";
+
+/** Liquid chrome blob in a centred square. Mount once; nothing re-renders per frame. */
 export function Visualizer() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,18 +28,23 @@ export function Visualizer() {
             reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
           });
         } catch {
-          return; // No WebGL: the page works without the blob.
+          setFallback(true); // No WebGL: a CSS disc stands in for the blob.
+          return;
         }
-        viz.setActive(usePlayer.getState().status === "playing");
-        const unsubscribe = usePlayer.subscribe((state) => {
+        const sync = (state: ReturnType<typeof usePlayer.getState>) => {
           viz.setActive(state.status === "playing");
-        });
+          viz.setTuning(state.tuning);
+        };
+        sync(usePlayer.getState());
+        const unsubscribe = usePlayer.subscribe(sync);
         teardown = () => {
           unsubscribe();
           viz.dispose();
         };
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setFallback(true);
+      });
 
     return () => {
       cancelled = true;
@@ -44,11 +52,21 @@ export function Visualizer() {
     };
   }, []);
 
+  useEffect(() => {
+    if (fallback) window.dispatchEvent(new Event(FIRST_FRAME_EVENT));
+  }, [fallback]);
+
   return (
-    <div
-      ref={containerRef}
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 top-44 bottom-16 md:inset-0 -z-10 overflow-hidden"
-    />
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 grid place-items-center">
+      <div ref={containerRef} className="relative aspect-square w-[min(70vw,360px)]">
+        {fallback && (
+          <div
+            data-testid="visualizer-fallback"
+            className="absolute inset-0 rounded-full"
+            style={{ background: "radial-gradient(circle, #ee2647 0%, #2b7bff 45%, transparent 70%)" }}
+          />
+        )}
+      </div>
+    </div>
   );
 }
