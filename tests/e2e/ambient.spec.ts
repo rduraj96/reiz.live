@@ -48,6 +48,14 @@ test("the ambient button hides the controls, grows the visualizer, and Esc bring
   await expect(dial(page)).toBeVisible();
 });
 
+test("focus moves to the exit button on entering, and back to the Ambient button on leaving", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Ambient mode" }).click();
+  await expect(exitButton(page)).toBeFocused();
+  await exitButton(page).click();
+  await expect(page.getByRole("button", { name: "Ambient mode" })).toBeFocused();
+});
+
 test("the exit button leaves ambient mode", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "Ambient mode" }).click();
@@ -77,6 +85,9 @@ test("the bottom bar shows the station and song, and fades out when idle", async
   await expect(bar).toContainText("House One");
   await expect(bar).toContainText("Moby - Porcelain");
   await expect(bar).toHaveAttribute("data-idle", "true", { timeout: 6000 });
+  // The cursor hides over the visualizer too, not just the background.
+  const cursor = await page.getByRole("button", { name: /^(Play|Pause)$/ }).evaluate((el) => getComputedStyle(el).cursor);
+  expect(cursor).toBe("none");
   await page.mouse.move(40, 40);
   await page.mouse.move(80, 80);
   await expect(bar).not.toHaveAttribute("data-idle", "true");

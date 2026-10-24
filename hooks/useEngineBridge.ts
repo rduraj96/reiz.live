@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { getAudioEngine } from "@/lib/audio/engine";
 import { syncMediaSession } from "@/lib/audio/mediaSession";
-import { recordDead } from "@/lib/library/deadStations";
+import { createFailureRecorder } from "@/lib/library/failureRecorder";
 import { addRecent } from "@/lib/library/recents";
 import { usePlayer } from "@/store/player";
 
@@ -38,6 +38,8 @@ function syncFromStore() {
 export function useEngineBridge() {
   useEffect(() => {
     const engine = getAudioEngine();
+    // Only a station that never started playing counts as dead (not a stall or the listener's dropped connection).
+    const failures = createFailureRecorder();
     const store = usePlayer;
     const initial = store.getState();
     engine.setVolume(initial.volume);
@@ -48,11 +50,12 @@ export function useEngineBridge() {
       engine.on("playing", (station) => {
         store.getState().setStatus("playing");
         addRecent(station);
+        failures.playing(station.id);
       }),
       engine.on("paused", () => store.getState().setStatus("paused")),
       engine.on("blocked", () => store.getState().setStatus("blocked")),
       engine.on("failed", (station) => {
-        recordDead(station.id);
+        failures.failed(station.id);
         store.getState().reportFailure(station);
       }),
     ];
@@ -60,7 +63,10 @@ export function useEngineBridge() {
     syncFromStore();
     const unsubscribe = store.subscribe((state, prev) => {
       // Load first: nothing in the media-session sync may stand between a pick and playback.
-      if (state.current && state.current !== prev.current && !state.primed) void engine.load(state.current);
+      if (state.current && state.current !== prev.current && !state.primed) {
+        failures.loaded(state.current.id);
+        void engine.load(state.current);
+      }
       if (state.volume !== prev.volume) engine.setVolume(state.volume);
       if (state.tuning !== prev.tuning) engine.setTuning(state.tuning);
       if (state.current !== prev.current || state.status !== prev.status || state.nowPlaying !== prev.nowPlaying) {

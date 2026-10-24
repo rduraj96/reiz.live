@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAmbient } from "@/store/ambient";
 import { usePlayer } from "@/store/player";
 
@@ -14,6 +14,20 @@ export function AmbientControls() {
   const exit = useAmbient((s) => s.exit);
   const name = usePlayer((s) => s.current?.name ?? "");
   const song = usePlayer((s) => s.nowPlaying);
+  const exitRef = useRef<HTMLButtonElement>(null);
+
+  // Entering hides the focused Ambient button: move focus to the exit button, and back to Ambient on the way out.
+  useEffect(() => {
+    if (!on) return;
+    exitRef.current?.focus();
+    return () => {
+      requestAnimationFrame(() => {
+        if (document.activeElement === document.body || document.activeElement === null) {
+          document.querySelector<HTMLElement>('[aria-label="Ambient mode"]')?.focus();
+        }
+      });
+    };
+  }, [on]);
 
   useEffect(() => {
     if (!on) return;
@@ -43,6 +57,7 @@ export function AmbientControls() {
         {song && <span> · {song}</span>}
       </p>
       <button
+        ref={exitRef}
         type="button"
         onClick={exit}
         className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[hsl(0_0%_22%)] px-4 text-xs uppercase tracking-[0.14em] text-muted transition-colors hover:border-foreground hover:text-foreground"

@@ -101,12 +101,14 @@ export function Readout({ message, onRetry }: { message?: string; onRetry?: () =
             {current?.name}
           </div>
         )}
-        {song && !message && (
+        {current && !message && (
+          // Always takes its line while a station is tuned, so the song arriving doesn't resize the stage above.
           <div
-            data-now-playing
-            className={`col-span-2 row-start-3 min-w-0 truncate text-sm text-muted transition-opacity duration-200 md:text-base ${tuning ? "opacity-35" : ""}`}
+            data-now-playing={song ? "" : undefined}
+            aria-hidden={song ? undefined : true}
+            className={`col-span-2 row-start-3 min-w-0 truncate text-sm text-muted transition-opacity duration-200 md:text-base ${tuning ? "opacity-35" : ""} ${song ? "" : "invisible"}`}
           >
-            {song}
+            {song ?? "\u00a0"}
           </div>
         )}
       </div>

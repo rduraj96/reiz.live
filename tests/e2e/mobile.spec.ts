@@ -84,3 +84,22 @@ test("phones start on the light 2D visualizer", async ({ page }) => {
   await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
   await expect(page.getByRole("button", { name: /switch to 3D/ })).toBeVisible();
 });
+
+test("the visualizer doesn't jump when the song line arrives", async ({ page }) => {
+  let release!: () => void;
+  const ready = new Promise<void>((r) => (release = r));
+  await page.route("**/api/now-playing*", async (route) => {
+    await ready;
+    await route.fulfill({ json: { title: "Bonobo - Kerala" } });
+  });
+  await setup(page);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  const blob = page.getByRole("button", { name: "Pause", exact: true });
+  await expect(blob).toBeVisible({ timeout: 5000 });
+  const before = (await blob.boundingBox())!;
+  release();
+  await expect(page.locator("main [data-now-playing]")).toHaveText("Bonobo - Kerala");
+  const after = (await blob.boundingBox())!;
+  expect(after.width).toBe(before.width);
+  expect(after.y).toBe(before.y);
+});

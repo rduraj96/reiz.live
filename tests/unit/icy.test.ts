@@ -90,3 +90,37 @@ describe("readIcyTitle", () => {
     await expect(readIcyTitle("https://radio.example/live", { fetchImpl })).resolves.toBe("Björk - Joga");
   });
 });
+
+describe("readIcyTitle and redirects", () => {
+  const redirect = (to: string) => new Response(null, { status: 302, headers: { location: to } });
+
+  it("never follows a redirect to a private address", async () => {
+    const fetchImpl = vi.fn(async () => redirect("http://169.254.169.254/latest/meta-data"));
+    await expect(readIcyTitle("https://radio.example/live", { fetchImpl })).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(((fetchImpl.mock.calls[0] as unknown[])[1] as RequestInit).redirect).toBe("manual");
+  });
+
+  it("follows a few redirects between public hosts", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(redirect("/relay"))
+      .mockResolvedValueOnce(icyResponse("StreamTitle='Nils Frahm - Says';"));
+    await expect(readIcyTitle("https://radio.example/live", { fetchImpl })).resolves.toBe("Nils Frahm - Says");
+    expect(fetchImpl.mock.calls[1][0]).toBe("https://radio.example/relay");
+  });
+
+  it("gives up after too many redirects", async () => {
+    const fetchImpl = vi.fn(async () => redirect("https://radio.example/again"));
+    await expect(readIcyTitle("https://radio.example/live", { fetchImpl })).resolves.toBeNull();
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("isPublicStreamUrl: IPv6 forms of private IPv4", () => {
+  it.each(["http://[::ffff:127.0.0.1]/", "http://[::ffff:a9fe:a9fe]/", "http://[64:ff9b::a00:1]/", "http://[::]/"])(
+    "refuses %s",
+    (url) => expect(isPublicStreamUrl(url)).toBe(false),
+  );
+  it("allows a public IPv6 host", () => expect(isPublicStreamUrl("http://[2001:4860:4860::8888]/")).toBe(true));
+});

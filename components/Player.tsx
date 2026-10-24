@@ -38,7 +38,7 @@ function BlobButton() {
           if (usePlayer.getState().current) togglePlay();
           else tunerApi.tuneNearest();
         }}
-        className="relative z-[2] grid aspect-square w-[var(--blob)] max-w-full cursor-pointer place-items-center rounded-full [grid-area:1/1] focus-visible:outline-offset-[-6px]"
+        className="relative z-[2] grid aspect-square w-[var(--blob)] max-w-full cursor-pointer place-items-center rounded-full group-data-[idle]/player:cursor-none [grid-area:1/1] focus-visible:outline-offset-[-6px]"
       >
         <Visualizer />
       </button>

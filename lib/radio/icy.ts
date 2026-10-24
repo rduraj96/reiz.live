@@ -40,17 +40,29 @@ export function isPublicStreamUrl(raw: string): boolean {
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
   if (host.startsWith("[")) {
     const v6 = host.slice(1, -1);
-    return !(v6 === "::1" || v6 === "::" || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6));
+    if (v6 === "::1" || v6 === "::" || /^f[cd]/.test(v6) || /^fe[89ab]/.test(v6)) return false;
+    // IPv4 inside IPv6 (::ffff:a.b.c.d, which URL normalises to ::ffff:hhhh:hhhh) and NAT64 (64:ff9b::/96):
+    // judge the embedded IPv4 address.
+    const embedded = v6.match(/^(?:::ffff:|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (embedded) {
+      const hi = parseInt(embedded[1], 16);
+      return isPublicV4(hi >> 8, hi & 255);
+    }
+    return !/^(?:::ffff:|64:ff9b:)/.test(v6);
   }
   const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (v4) {
-    const [a, b] = [Number(v4[1]), Number(v4[2])];
-    for (const [prefix, bits] of PRIVATE_V4) {
-      if (bits === 8 ? a === prefix : (a * 256 + b) >> (16 - bits) === prefix >> (16 - bits)) return false;
-    }
+  return v4 ? isPublicV4(Number(v4[1]), Number(v4[2])) : true;
+}
+
+function isPublicV4(a: number, b: number): boolean {
+  for (const [prefix, bits] of PRIVATE_V4) {
+    if (bits === 8 ? a === prefix : (a * 256 + b) >> (16 - bits) === prefix >> (16 - bits)) return false;
   }
   return true;
 }
+
+/** Redirects followed by hand, each target checked like the first URL: fetch's own following would skip the check. */
+const MAX_REDIRECTS = 3;
 
 function decode(bytes: Uint8Array): string {
   try {
@@ -69,10 +81,24 @@ export async function readIcyTitle(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetchImpl(url, {
+    let target = url;
+    let res = await fetchImpl(target, {
       headers: { "Icy-MetaData": "1", "User-Agent": "reiz.live" },
       signal: controller.signal,
+      redirect: "manual",
     });
+    for (let hops = 0; res.status >= 300 && res.status < 400; hops++) {
+      const location = res.headers.get("location");
+      void res.body?.cancel();
+      if (!location || hops >= MAX_REDIRECTS) return null;
+      target = new URL(location, target).toString();
+      if (!isPublicStreamUrl(target)) return null;
+      res = await fetchImpl(target, {
+        headers: { "Icy-MetaData": "1", "User-Agent": "reiz.live" },
+        signal: controller.signal,
+        redirect: "manual",
+      });
+    }
     const metaint = Number(res.headers.get("icy-metaint"));
     // The block can be up to 255 × 16 bytes; give up early if it can't fit under the cap.
     if (!res.ok || !res.body || !Number.isInteger(metaint) || metaint <= 0 || metaint + 1 > maxBytes) return null;
