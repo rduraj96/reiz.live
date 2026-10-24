@@ -99,7 +99,7 @@ export function LanguageSwitch({ className = "" }: { className?: string }) {
         role="radiogroup"
         aria-label="Language"
         hidden={!open}
-        className="absolute right-0 top-full z-40 mt-1.5 min-w-[150px] rounded-[14px] border border-[hsl(0_0%_16%)] bg-[hsl(0_0%_8%)] p-1.5"
+        className="lang-drop absolute right-0 top-full z-40 mt-1.5 min-w-[200px] border-t border-accent bg-background px-2 pb-2 pt-1"
       >
         {options.map((o, i) => (
           <button
@@ -112,8 +112,10 @@ export function LanguageSwitch({ className = "" }: { className?: string }) {
             aria-checked={i === checked}
             tabIndex={i === checked ? 0 : -1}
             onClick={() => choose(o.value)}
-            className="block min-h-11 w-full rounded-[9px] px-3 text-left text-sm normal-case tracking-normal text-muted hover:bg-[hsl(0_0%_12%)] hover:text-foreground aria-checked:text-foreground"
+            style={{ "--i": i } as React.CSSProperties}
+            className="lang-option flex min-h-11 w-full items-center gap-2 px-2 text-left text-[22px] font-bold uppercase tracking-[-0.03em] text-[hsl(0_0%_45%)] transition-colors hover:text-foreground aria-checked:text-foreground"
           >
+            <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full bg-accent ${i === checked ? "" : "invisible"}`} />
             {o.label}
           </button>
         ))}

@@ -16,3 +16,17 @@ test("header and dial span the full width on wide screens", async ({ page }) => 
     expect(box?.width).toBe(1920);
   }
 });
+
+test("panels take over the whole screen with a giant title", async ({ page }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "SEARCH" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Search" })).toBeVisible();
+  await page.getByRole("tab", { name: "Saved" }).click();
+  await expect(dialog.getByRole("heading", { name: "Saved" })).toBeVisible();
+  await expect(async () => {
+    expect(await dialog.boundingBox()).toEqual({ x: 0, y: 0, width: 1920, height: 1080 });
+  }).toPass();
+});

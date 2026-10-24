@@ -1,6 +1,5 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useRef, useState } from "react";
 import { togglePlay } from "@/hooks/useEngineBridge";
 import { useSearch } from "@/hooks/useSearch";
@@ -10,6 +9,7 @@ import { signOut, useAuth } from "@/store/auth";
 import { usePlayer, type PanelTab } from "@/store/player";
 import { SearchBar, type Country } from "./SearchBar";
 import { StationRow } from "./StationRow";
+import { Takeover, stagger, staggerClass } from "./Takeover";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "search", label: "Search" },
@@ -90,12 +90,13 @@ export function StationPanel() {
   }
 
   function renderStations(stations: Station[], empty: string) {
-    if (stations.length === 0) return <p className="text-muted">{empty}</p>;
+    if (stations.length === 0) return <Note>{empty}</Note>;
     return (
-      <ul className="space-y-2">
-        {stations.map((station) => (
+      <ul>
+        {stations.map((station, i) => (
           <StationRow
             key={station.id}
+            index={i}
             station={station}
             active={station.id === current?.id}
             onSelect={() => pick(station, stations)}
@@ -107,102 +108,88 @@ export function StationPanel() {
 
   function body() {
     if (tab === "search") {
-      if (!searching) return <p className="text-muted">Type at least two letters to search</p>;
-      if (search.error) return <p className="text-muted">{search.error}</p>;
-      if (search.results === null) return <p className="text-muted">Searching…</p>;
+      if (!searching) return <Note>Type at least two letters to search</Note>;
+      if (search.error) return <Note>{search.error}</Note>;
+      if (search.results === null) return <Note>Searching…</Note>;
       return renderStations(search.results, "No stations found");
     }
     if (tab === "recent") return renderStations(recents, "Nothing played yet");
-    if (!user) return <p className="text-muted">Log in to save stations</p>;
+    if (!user) return <Note>Log in to save stations</Note>;
     return renderStations(saved, "No saved stations yet");
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => !o && closePanel()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60" />
-        <Dialog.Content
-          aria-describedby={undefined}
-          onOpenAutoFocus={(e) => {
-            // Safari/Firefox leave activeElement on <body> after a mouse click, so fall back to the opening control.
-            const active = document.activeElement;
-            openerRef.current =
-              active instanceof HTMLElement && active !== document.body && document.contains(active)
-                ? active
-                : visibleOpener(tab);
-            // Search is for typing: land in the input rather than on the first tabbable control.
-            if (tab === "search" && searchRef.current) {
-              e.preventDefault();
-              searchRef.current.focus();
-            }
-          }}
-          onCloseAutoFocus={(e) => {
-            // No Dialog.Trigger (opened via the store), so hand focus back to the opener ourselves.
-            e.preventDefault();
-            openerRef.current?.focus();
-          }}
-          className="fixed z-50 flex flex-col border border-muted bg-background p-4 text-foreground inset-x-0 bottom-0 h-[85dvh] md:inset-x-auto md:right-0 md:top-0 md:bottom-auto md:h-dvh md:w-[400px]"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <Dialog.Title className="text-2xl font-bold tracking-tight">STATIONS</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="size-11 text-2xl text-muted hover:text-foreground">
-              ×
-            </Dialog.Close>
+    <Takeover
+      open={open}
+      onOpenChange={(o) => !o && closePanel()}
+      title={TABS.find((t) => t.id === tab)!.label}
+      onOpenAutoFocus={(e) => {
+        // Safari/Firefox leave activeElement on <body> after a mouse click, so fall back to the opening control.
+        const active = document.activeElement;
+        openerRef.current =
+          active instanceof HTMLElement && active !== document.body && document.contains(active)
+            ? active
+            : visibleOpener(tab);
+        // Search is for typing: land in the input rather than on the first tabbable control.
+        if (tab === "search" && searchRef.current) {
+          e.preventDefault();
+          searchRef.current.focus();
+        }
+      }}
+      onCloseAutoFocus={(e) => {
+        // No Dialog.Trigger (opened via the store), so hand focus back to the opener ourselves.
+        e.preventDefault();
+        openerRef.current?.focus();
+      }}
+    >
+      <div role="tablist" aria-label="Station lists" className={`mb-2 flex gap-5 ${staggerClass}`}>
+        {TABS.map((t, i) => {
+          const selected = t.id === tab;
+          return (
+            <button
+              key={t.id}
+              ref={(el) => {
+                tabRefs.current[t.id] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`panel-tab-${t.id}`}
+              aria-selected={selected}
+              aria-controls="panel-tabpanel"
+              tabIndex={selected ? 0 : -1}
+              onClick={() => openPanel(t.id)}
+              onKeyDown={(e) => onTabKeyDown(e, i)}
+              className={`flex min-h-11 items-center gap-1.5 text-xs uppercase tracking-[0.16em] transition-colors ${
+                selected ? "text-foreground" : "text-muted hover:text-foreground"
+              }`}
+            >
+              <span aria-hidden="true" className={`size-1.5 rounded-full bg-accent ${selected ? "" : "invisible"}`} />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+      <div role="tabpanel" id="panel-tabpanel" aria-labelledby={`panel-tab-${tab}`} key={tab}>
+        {tab === "search" && (
+          <SearchBar q={q} onQ={setQ} country={country} onCountry={setCountry} countries={countries} inputRef={searchRef} />
+        )}
+        {body()}
+        {tab === "saved" && (
+          <div className={`mt-8 ${staggerClass}`} style={stagger(4)}>
+            <button
+              type="button"
+              onClick={() => (user ? void signOut() : openLogin())}
+              className="min-h-12 rounded-full border border-foreground px-6 text-[13px] uppercase tracking-[0.12em] transition-colors hover:border-accent hover:text-accent"
+            >
+              {user ? "Log out" : "Log in"}
+            </button>
           </div>
-          <div role="tablist" aria-label="Station lists" className="mb-3 flex border-b border-muted">
-            {TABS.map((t, i) => {
-              const selected = t.id === tab;
-              return (
-                <button
-                  key={t.id}
-                  ref={(el) => {
-                    tabRefs.current[t.id] = el;
-                  }}
-                  type="button"
-                  role="tab"
-                  id={`panel-tab-${t.id}`}
-                  aria-selected={selected}
-                  aria-controls="panel-tabpanel"
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => openPanel(t.id)}
-                  onKeyDown={(e) => onTabKeyDown(e, i)}
-                  className={`min-h-11 flex-1 border-b-2 text-lg ${
-                    selected ? "border-accent text-foreground" : "border-transparent text-muted hover:text-foreground"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-          <div role="tabpanel" id="panel-tabpanel" aria-labelledby={`panel-tab-${tab}`} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {tab === "search" && (
-                <SearchBar
-                  q={q}
-                  onQ={setQ}
-                  country={country}
-                  onCountry={setCountry}
-                  countries={countries}
-                  inputRef={searchRef}
-                />
-              )}
-              {body()}
-            </div>
-            {tab === "saved" && (
-              <div className="mt-3 border-t border-muted pt-3">
-                <button
-                  type="button"
-                  onClick={() => (user ? void signOut() : openLogin())}
-                  className="min-h-11 border border-foreground px-4 text-foreground hover:border-accent"
-                >
-                  {user ? "Log out" : "Log in"}
-                </button>
-              </div>
-            )}
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        )}
+      </div>
+    </Takeover>
   );
+}
+
+function Note({ children }: { children: React.ReactNode }) {
+  return <p className={`py-4 text-base text-muted ${staggerClass}`}>{children}</p>;
 }

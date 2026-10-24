@@ -549,7 +549,7 @@ export function Tuner({ offDial }: { offDial?: OffDial }) {
       if (t.stationId !== null) {
         out.push(
           <div
-            key={`s-${t.stationId}`}
+            key={`s-${t.band}-${t.stationId}`}
             data-station-id={t.stationId}
             className={`${styles.tick} ${styles.station}`}
             style={{ left: t.x }}

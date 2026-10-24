@@ -1,12 +1,13 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import { attachAuth, useAuth } from "@/store/auth";
+import { Takeover, stagger, staggerClass } from "./Takeover";
 
 const field =
-  "w-full bg-transparent border border-muted px-3 h-11 text-foreground placeholder:text-muted focus:outline-none focus:border-accent";
+  "w-full min-h-14 border-b border-[hsl(0_0%_15%)] bg-transparent text-[clamp(22px,4vw,32px)] font-light tracking-[-0.02em] " +
+  "text-foreground placeholder:text-[hsl(0_0%_29%)] outline-none focus-visible:outline-none focus:border-accent";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -40,7 +41,7 @@ function LoginForm() {
 
   return (
     <>
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      <form onSubmit={submit} className={`flex max-w-[420px] flex-col gap-4 ${staggerClass}`} style={stagger(1)}>
         <input
           type="email"
           aria-label="Email"
@@ -59,16 +60,16 @@ function LoginForm() {
           required
           className={field}
         />
-        <button type="submit" disabled={busy} className="h-11 bg-accent text-foreground disabled:opacity-60">
+        <button type="submit" disabled={busy} className="mt-3 min-h-13 rounded-full bg-accent-strong text-sm font-bold uppercase tracking-[0.08em] text-foreground transition-opacity disabled:opacity-60">
           {busy ? "Processing..." : isSignUp ? "Sign up" : "Sign in"}
         </button>
       </form>
       {error && (
-        <p role="alert" className="mt-3 text-center text-base text-muted">
+        <p role="alert" className="mt-4 max-w-[420px] text-base text-muted">
           {error}
         </p>
       )}
-      <p className="mt-4 text-center text-base text-muted">
+      <p className={`mt-4 text-base text-muted ${staggerClass}`} style={stagger(2)}>
         {isSignUp ? "Already have an account?" : "No account yet?"}
         <button
           type="button"
@@ -91,21 +92,17 @@ export function LoginDialog() {
   useEffect(() => attachAuth(getSupabase()), []);
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => !o && closeLogin()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/70" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 border border-muted bg-background p-6 text-foreground">
-          <Dialog.Title className="text-2xl font-light">{user ? "Signed in" : "Sign in to save"}</Dialog.Title>
-          <Dialog.Description className="mb-4 text-base text-muted">
-            Saved stations follow your account.
-          </Dialog.Description>
-          {available ? (
-            <LoginForm />
-          ) : (
-            <p className="text-base text-muted">Login is unavailable right now</p>
-          )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Takeover
+      open={open}
+      onOpenChange={(o) => !o && closeLogin()}
+      title={user ? "Signed in" : "Log in"}
+      description={
+        <p className={`mb-6 text-base text-muted ${staggerClass}`} style={stagger(0)}>
+          Saved stations follow your account.
+        </p>
+      }
+    >
+      {available ? <LoginForm /> : <p className="text-base text-muted">Login is unavailable right now</p>}
+    </Takeover>
   );
 }
