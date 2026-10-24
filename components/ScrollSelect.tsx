@@ -69,8 +69,28 @@ const ScrollSelect: React.FC<ScrollSelectProps> = ({
   };
 
   const handleClick = (index: number) => {
+    // A pending wheel change must not override this pick.
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     setSelectedIndex(index);
     onChange(options[index].value);
+  };
+
+  // Radio-group keys, as in ChipRow: arrows move and select (wrapping), Home/End jump.
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    const last = options.length - 1;
+    const from = Math.max(0, selectedIndex);
+    let target: number;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") target = from === last ? 0 : from + 1;
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft") target = from === 0 ? last : from - 1;
+    else if (event.key === "Home") target = 0;
+    else if (event.key === "End") target = last;
+    else return;
+    event.preventDefault();
+    handleClick(target);
+    // The checked item may be a freshly mounted element: move focus once it renders.
+    requestAnimationFrame(() =>
+      containerRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
+    );
   };
 
   const getVisibleOptions = () => {
@@ -100,8 +120,10 @@ const ScrollSelect: React.FC<ScrollSelectProps> = ({
         horizontal ? "h-20" : "h-32"
       } overflow-hidden scroll-select-container`}
       ref={containerRef}
-      role="group"
+      role="radiogroup"
       aria-label={label}
+      aria-orientation={horizontal ? "horizontal" : "vertical"}
+      onKeyDown={handleKeyDown}
     >
       <div
         className={`absolute inset-0 flex ${
@@ -112,6 +134,9 @@ const ScrollSelect: React.FC<ScrollSelectProps> = ({
         <AnimatePresence initial={false}>
           {getVisibleOptions().map((option, index) => {
             const actualIndex = options.indexOf(option);
+            const checked = actualIndex === selectedIndex;
+            // One tab stop per picker: the checked item (or the first, if nothing matches).
+            const focusable = checked || (selectedIndex < 0 && actualIndex === 0);
             let offset = (index - 1) * itemSize;
 
             // Adjust for top and bottom edges
@@ -124,6 +149,12 @@ const ScrollSelect: React.FC<ScrollSelectProps> = ({
             return (
               <motion.div
                 key={option.value}
+                role="radio"
+                aria-checked={checked}
+                // Only a window of the options is rendered: give screen readers the full position.
+                aria-posinset={actualIndex + 1}
+                aria-setsize={options.length}
+                tabIndex={focusable ? 0 : -1}
                 initial={{ opacity: 0, [horizontal ? "x" : "y"]: offset }}
                 animate={{
                   opacity: getItemStyle(actualIndex).opacity,

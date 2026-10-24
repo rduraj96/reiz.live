@@ -46,7 +46,8 @@ async function expectNoSevereViolations(page: Page) {
 }
 
 // Exact number of real tab stops in each layout (disabled controls are skipped).
-const DESKTOP_TAB_STOPS = 6;
+// Desktop: 5 header links, the Language and Genre pickers (one stop each), Stations.
+const DESKTOP_TAB_STOPS = 8;
 const MOBILE_TAB_STOPS = 4;
 
 async function focusRing(page: Page) {
@@ -67,6 +68,9 @@ async function expectFocusRings(page: Page, tabStops: number) {
       .poll(() => focusRing(page), { message: `tab stop ${i}` })
       .toEqual({ style: "solid", color: "rgb(238, 38, 71)", width: "2px" });
   }
+  // Exactly `tabStops`: one more Tab leaves the page's controls.
+  await page.keyboard.press("Tab");
+  expect(await focusRing(page), `more than ${tabStops} tab stops`).toBeNull();
 }
 
 test.describe("desktop", () => {
@@ -85,6 +89,19 @@ test.describe("desktop", () => {
   test("tab stops show a focus ring", async ({ page }) => {
     await setup(page);
     await expectFocusRings(page, DESKTOP_TAB_STOPS);
+  });
+
+  test("genre picker is a keyboard radio group", async ({ page }) => {
+    await setup(page);
+    const picker = page.getByRole("radiogroup", { name: "Genre" });
+    const checked = picker.getByRole("radio", { checked: true });
+    await expect(checked).toHaveText("House");
+    await checked.focus();
+    const request = page.waitForRequest((r) => r.url().includes("/api/stations?genre=dance"));
+    await page.keyboard.press("ArrowDown");
+    await request;
+    await expect(picker.getByRole("radio", { checked: true })).toHaveText("Dance");
+    await expect(picker.getByRole("radio", { checked: true })).toBeFocused();
   });
 });
 
