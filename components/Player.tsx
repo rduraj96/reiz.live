@@ -86,8 +86,9 @@ export function Player({ initialStation }: { initialStation?: Station }) {
         </div>
       </div>
       <main className="flex min-h-0 flex-1 flex-col">
-        {/* The blob size fits the stage both ways: the orbit ring (1.55 × blob) must clear a short phone screen too. */}
-        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))] group-data-[ambient]/player:[--blob:min(70cqw,calc((100cqh-28px)/1.55))] min-[760px]:group-data-[ambient]/player:[--blob:min(80cqw,80cqh)]">
+        {/* The blob size fits the stage both ways: on phones the orbit ring (1.55 × blob) must clear a short screen too;
+            from 760 px (the ticker, no ring) it grows with the screen up to 640 px. */}
+        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))] min-[760px]:[--blob:min(60cqw,78cqh,640px)] group-data-[ambient]/player:[--blob:min(70cqw,calc((100cqh-28px)/1.55))] min-[760px]:group-data-[ambient]/player:[--blob:min(80cqw,80cqh)]">
           <BigName />
           <BlobButton />
         </div>

@@ -31,6 +31,18 @@ test("panels take over the whole screen with a giant title", async ({ page }) =>
   }).toPass();
 });
 
+test("the blob grows with big screens instead of stopping at 360 px", async ({ page }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+  const blob = page.getByRole("button", { name: /^(Play|Pause)$/ });
+  await expect(blob).toBeVisible();
+  const box = (await blob.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(520);
+  // Still clear of the header and the readout: it fits the stage's height.
+  const stage = (await blob.locator("..").boundingBox())!;
+  expect(box.height).toBeLessThanOrEqual(stage.height);
+});
+
 test.describe("the 3D default", () => {
   // Without the suite's saved 2D choice, so the device default applies.
   test.use({ storageState: { cookies: [], origins: [] } });
