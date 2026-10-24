@@ -63,14 +63,15 @@ export function StationPanel() {
 
   /**
    * Once the user has started audio, a pick becomes the play queue and plays. Before that (only primed, or
-   * nothing playing yet) it is primed so the first tap on the blob starts it. The Tuner follows `current` itself.
+   * nothing loaded yet) it is primed so the first tap on the blob starts it. A loaded station that failed (idle,
+   * not primed, still current) counts as started. The Tuner follows `current` itself.
    */
   function pick(station: Station, stations: Station[]) {
     const { primed, status, current, setList, select, prime } = usePlayer.getState();
     if (station.id === current?.id && (status === "paused" || status === "blocked" || status === "idle")) {
       // select() ignores the current station, so resume it directly (this also loads a primed one).
       togglePlay();
-    } else if (!primed && status !== "idle") {
+    } else if (!primed && (status !== "idle" || current !== null)) {
       setList(stations);
       select(station);
     } else {
