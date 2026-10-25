@@ -80,3 +80,17 @@ test("Lines fill the stage edge to edge and the big name steps aside", async ({ 
   // The middle of the stage still plays and pauses.
   await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });
+
+test("the page links the red-dot icons: favicon, SVG icon and home-screen icon", async ({ page, request }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+  const hrefs = await page.locator('link[rel="icon"], link[rel="apple-touch-icon"]').evaluateAll((els) =>
+    els.map((el) => `${el.getAttribute("rel")} ${el.getAttribute("type") ?? ""} ${el.getAttribute("href")}`),
+  );
+  expect(hrefs.some((h) => h.startsWith("icon") && h.includes("/icon.svg"))).toBe(true);
+  expect(hrefs.some((h) => h.startsWith("apple-touch-icon") && h.includes("/apple-icon.png"))).toBe(true);
+  for (const path of ["/favicon.ico", "/icon.svg", "/apple-icon.png", "/icon-512.png"]) {
+    expect((await request.get(path)).status(), path).toBe(200);
+  }
+  expect(await (await request.get("/icon.svg")).text()).toContain("#ee2647");
+});
