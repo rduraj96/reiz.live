@@ -62,7 +62,7 @@ describe("GET /api/stations", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual([st("b")]);
     expect(byTag).toHaveBeenCalledWith("house", "english");
-    expect(playableOnly).toHaveBeenCalledWith([st("a"), st("b")]);
+    expect(playableOnly).toHaveBeenCalledWith([st("a"), st("b")], 50, 24); // answers once 24 have passed
     expect(res.headers.get("Cache-Control")).toBe(CACHE);
   });
 

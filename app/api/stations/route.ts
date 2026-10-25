@@ -11,8 +11,11 @@ export async function GET(request: NextRequest) {
   const language = params.get("language");
 
   try {
+    // The dial shows 12 a band: stop checking streams once 24 have passed (room for ones that fail on a device).
     const stations = await playableOnly(
       await byTag(genre, !language || language === "any" ? null : language),
+      50,
+      24,
     );
     return NextResponse.json(stations, { headers: { "Cache-Control": CACHE_CONTROL } });
   } catch (error) {

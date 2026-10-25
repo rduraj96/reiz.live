@@ -61,7 +61,7 @@ describe("verifyStream", () => {
     expect(await verifyStream("https://a.example/s")).toBe(false);
   });
 
-  it("returns false after 3000 ms when fetch never resolves", async () => {
+  it("returns false after 2000 ms when fetch never resolves", async () => {
     fetchMock.mockImplementation(
       (_url: string, init: RequestInit) =>
         new Promise((_resolve, reject) => {
@@ -69,7 +69,7 @@ describe("verifyStream", () => {
         }),
     );
     const p = verifyStream("https://a.example/s");
-    await vi.advanceTimersByTimeAsync(2999);
+    await vi.advanceTimersByTimeAsync(1999);
     let settled = false;
     void p.then(() => (settled = true));
     await Promise.resolve();
@@ -107,6 +107,23 @@ describe("playableOnly", () => {
     ];
     const out = await playableOnly(input);
     expect(out.map((s) => s.id)).toEqual(["1", "3"]);
+  });
+
+  it("with `enough`, answers as soon as that many have passed, without waiting for slow streams", async () => {
+    fetchMock.mockImplementation((url: string, init: RequestInit) =>
+      url.includes("slow")
+        ? new Promise((_r, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))
+        : Promise.resolve(res({ "access-control-allow-origin": "*" })),
+    );
+    const input = [
+      ...Array.from({ length: 3 }, (_, i) => station(`s${i}`, `https://slow${i}.example/s`)),
+      ...Array.from({ length: 30 }, (_, i) => station(String(i), `https://fast${i}.example/s`)),
+    ];
+    let out: Station[] | null = null;
+    void playableOnly(input, 50, 24).then((r) => (out = r));
+    await vi.advanceTimersByTimeAsync(10); // far below the probe timeout
+    expect(out).not.toBeNull();
+    expect(out!.map((s) => s.id)).toEqual(Array.from({ length: 24 }, (_, i) => String(i)));
   });
 
   it("caps the result at 50", async () => {

@@ -1,7 +1,7 @@
 import "server-only";
 import type { Station } from "./types";
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 2000;
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 const cache = new Map<string, { ok: boolean; at: number }>();
@@ -40,8 +40,28 @@ export async function verifyStream(url: string): Promise<boolean> {
   return ok;
 }
 
-/** Verifies all stations concurrently; returns up to `max` passing ones in input order. */
-export async function playableOnly(stations: Station[], max = 50): Promise<Station[]> {
-  const verdicts = await Promise.all(stations.map((s) => verifyStream(s.streamUrl)));
-  return stations.filter((_, i) => verdicts[i]).slice(0, max);
+/**
+ * Verifies all stations concurrently; returns up to `max` passing ones in input order. With `enough`, it answers
+ * as soon as that many have passed instead of waiting for the slowest streams to time out.
+ */
+export function playableOnly(stations: Station[], max = 50, enough = Infinity): Promise<Station[]> {
+  return new Promise((resolve) => {
+    const passed = new Array<boolean>(stations.length).fill(false);
+    let settled = 0;
+    let count = 0;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve(stations.filter((_, i) => passed[i]).slice(0, max));
+    };
+    if (stations.length === 0) return finish();
+    stations.forEach((s, i) =>
+      verifyStream(s.streamUrl).then((ok) => {
+        passed[i] = ok;
+        if (ok && ++count >= enough) finish();
+        if (++settled === stations.length) finish();
+      }),
+    );
+  });
 }

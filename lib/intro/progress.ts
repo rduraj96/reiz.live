@@ -1,7 +1,9 @@
 /** Intro progress: real milestones mapped to 0..1 (the 87.5-108.0 MHz sweep), eased, bounded in time. */
 
 export const MIN_MS = 1600;
-export const MAX_MS = 6000;
+export const MAX_MS = 4000;
+/** The first stations stop holding the sweep after this long: the dial fills in when they arrive. */
+export const BAND_WAIT_MS = 2000;
 /** Held below 1 until MIN_MS so the sweep never finishes instantly on a warm load. */
 const CAP_BEFORE_MIN = 0.99;
 /** Easing time constant, and the gap under which the shown value snaps onto the target. */
@@ -10,9 +12,10 @@ const SNAP = 0.01;
 /** With no milestone at all the needle still creeps this far over MAX_MS, so it never looks frozen. */
 const CREEP = 0.12;
 
-export function introTarget(m: { fonts: boolean; band: boolean; frame: boolean }): number {
-  if (m.fonts && m.band && m.frame) return 1;
-  if (m.fonts && m.band) return 0.7;
+export function introTarget(m: { fonts: boolean; band: boolean; frame: boolean }, elapsedMs = 0): number {
+  const band = m.band || elapsedMs >= BAND_WAIT_MS;
+  if (m.fonts && band && m.frame) return 1;
+  if (m.fonts && band) return 0.7;
   if (m.fonts) return 0.2;
   return 0;
 }
