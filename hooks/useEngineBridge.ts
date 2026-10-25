@@ -64,7 +64,7 @@ export function useEngineBridge() {
     const unsubscribe = store.subscribe((state, prev) => {
       // Load first: nothing in the media-session sync may stand between a pick and playback.
       if (state.current && state.current !== prev.current && !state.primed) {
-        failures.loaded(state.current.id);
+        failures.loaded();
         void engine.load(state.current);
       }
       if (state.volume !== prev.volume) engine.setVolume(state.volume);

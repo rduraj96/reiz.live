@@ -157,7 +157,7 @@ export function Intro() {
         fonts,
         band: useDial.getState().firstBandReady,
         frame: frameDrawn,
-      });
+      }, now - start);
       p = stepIntro(p, target, now - start, now - last);
       last = now;
       render(p);

@@ -15,6 +15,12 @@ function run(target: number | ((t: number) => number), untilMs: number) {
 }
 
 describe("introTarget", () => {
+  it("stops waiting for the first stations after 2 s: the dial fills in when they arrive", () => {
+    expect(introTarget({ fonts: true, band: false, frame: true }, 1900)).toBe(0.2);
+    expect(introTarget({ fonts: true, band: false, frame: true }, 2000)).toBe(1);
+    expect(introTarget({ fonts: true, band: false, frame: false }, 2500)).toBe(0.7);
+  });
+
   it("maps milestones to 0, 0.2, 0.7 and 1", () => {
     expect(introTarget({ fonts: false, band: false, frame: false })).toBe(0);
     expect(introTarget({ fonts: true, band: false, frame: false })).toBe(0.2);
@@ -35,10 +41,10 @@ describe("stepIntro", () => {
     expect(frames.find((f) => f.v === 1)!.t).toBeLessThanOrEqual(1700);
   });
 
-  it("is forced to 1 at 6000 ms with no milestone ever done", () => {
-    const frames = run(0, 6200);
-    for (const f of frames.filter((f) => f.t < 6000)) expect(f.v).toBeLessThan(1);
-    expect(frames.find((f) => f.t >= 6000)!.v).toBe(1);
+  it("is forced to 1 at 4000 ms with no milestone ever done", () => {
+    const frames = run(0, 4200);
+    for (const f of frames.filter((f) => f.t < 4000)) expect(f.v).toBeLessThan(1);
+    expect(frames.find((f) => f.t >= 4000)!.v).toBe(1);
   });
 
   it("eases toward a mid milestone without jumping", () => {

@@ -31,23 +31,52 @@ test("panels take over the whole screen with a giant title", async ({ page }) =>
   }).toPass();
 });
 
+test("the blob grows with big screens instead of stopping at 360 px", async ({ page }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+  const blob = page.getByRole("button", { name: /^(Play|Pause)$/ });
+  await expect(blob).toBeVisible();
+  const box = (await blob.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(520);
+  // Still clear of the header and the readout: it fits the stage's height.
+  const stage = (await blob.locator("..").boundingBox())!;
+  expect(box.height).toBeLessThanOrEqual(stage.height);
+});
+
 test.describe("the 3D default", () => {
   // Without the suite's saved 2D choice, so the device default applies.
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("the visualizer switch swaps 3D for 2D and remembers it", async ({ page, isMobile }) => {
+  test("the visualizer switch cycles 3D, Dots and Lines, and remembers it", async ({ page, isMobile }) => {
     test.skip(isMobile, "touch devices start on 2D (mobile.spec.ts covers that default)");
     await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
     await page.goto("/");
 
     await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(1);
-    await page.getByRole("button", { name: /switch to 2D/ }).click();
+    await page.getByRole("button", { name: /switch to Dots/ }).click();
     await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
     await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(0);
 
     await page.reload();
     await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
+    await page.getByRole("button", { name: /switch to Lines/ }).click();
+    await expect(page.locator('canvas[data-viz="ridges"]')).toHaveCount(1);
     await page.getByRole("button", { name: /switch to 3D/ }).click();
     await expect(page.locator('canvas[data-viz="3d"]')).toHaveCount(1);
   });
+});
+
+test("Lines fill the stage edge to edge and the big name steps aside", async ({ page }) => {
+  await page.route("**/api/stations*", (route) => route.fulfill({ json: [] }));
+  await page.goto("/");
+  await page.evaluate(() => localStorage.setItem("reizdio:viz", "ridges"));
+  await page.reload();
+  const lines = page.locator('canvas[data-viz="ridges"]');
+  await expect(lines).toHaveCount(1);
+  const box = (await lines.boundingBox())!;
+  expect(box.x).toBe(0);
+  expect(box.width).toBe(page.viewportSize()!.width);
+  await expect(page.locator("[data-variant='ticker'], [data-variant='orbit']")).toHaveCount(0);
+  // The middle of the stage still plays and pauses.
+  await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });

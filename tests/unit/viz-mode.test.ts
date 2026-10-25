@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useViz } from "@/store/visualizer";
+import { nextVizMode, useViz, VIZ_LABEL } from "@/store/visualizer";
 import { createSpectrumReader, SILENT_AFTER_S } from "@/visualizer/spectrum";
 
 const touch = (isTouch: boolean) =>
@@ -21,6 +21,18 @@ describe("visualizer mode", () => {
     touch(false);
     useViz.getState().resolve();
     expect(useViz.getState().mode).toBe("3d");
+  });
+
+  it("the switch cycles 3D, Dots, Lines", () => {
+    expect([nextVizMode("3d"), nextVizMode("2d"), nextVizMode("ridges")]).toEqual(["2d", "ridges", "3d"]);
+    expect(VIZ_LABEL).toEqual({ "3d": "3D", "2d": "Dots", ridges: "Lines" });
+  });
+
+  it("remembers Lines across a reload", () => {
+    useViz.getState().setMode("ridges");
+    useViz.setState(useViz.getInitialState(), true);
+    useViz.getState().resolve();
+    expect(useViz.getState().mode).toBe("ridges");
   });
 
   it("a saved choice beats the device default and survives a reload", () => {

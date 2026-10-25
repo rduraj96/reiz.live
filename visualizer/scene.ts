@@ -16,6 +16,7 @@ const BLEED = 0.12;
 const TUNE_UP_RATE = 7;
 const TUNE_DOWN_RATE = 3.5;
 const MAX_DT = 0.05;
+const LARGE_BLOB_PX = 480;
 
 /**
  * Mounts the raymarched liquid chrome blob into `container` (a square). Reads
@@ -87,6 +88,9 @@ export function createVisualizer(
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
   const resize = (side: number) => {
+    // Every pixel is raymarched: a big blob on a retina screen renders at 1.5x, not 2x.
+    const maxRatio = isCoarsePointer || side > LARGE_BLOB_PX ? 1.5 : 2;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxRatio));
     const px = Math.max(1, side * (1 + 2 * BLEED));
     renderer.setSize(px, px, false);
     renderer.getDrawingBufferSize(material.uniforms.res.value);

@@ -131,12 +131,20 @@ test("header holds SEARCH, SAVED and INFO", async ({ page }) => {
   await expect(page.getByRole("dialog")).toContainText("Radio Browser");
 });
 
-test("heart while logged out opens login (unavailable without Supabase env)", async ({ page }) => {
+test("the heart saves a station in this browser: it shows under Saved, survives a reload, and unsaves", async ({ page }) => {
   await setup(page);
   await tune(page, 1);
   await expect(readoutName(page, "House Two")).toBeVisible();
   await page.getByRole("button", { name: "Save station" }).click();
-  await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
+  await expect(page.getByRole("button", { name: "Remove from saved" }).first()).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0); // no login
+
+  await page.reload();
+  await page.getByRole("button", { name: "SAVED" }).click();
+  const row = page.getByRole("dialog").getByRole("listitem").filter({ hasText: "House Two" });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Remove from saved" }).click();
+  await expect(page.getByRole("dialog").getByText("No saved stations yet")).toBeVisible();
 });
 
 test("a genre preset glides the dial to that band and plays its first station", async ({ page }) => {

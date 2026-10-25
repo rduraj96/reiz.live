@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useStationMeta } from "@/hooks/useStationMeta";
 import { usePlayer } from "@/store/player";
+import { useViz } from "@/store/visualizer";
 import styles from "./BigName.module.css";
 
 const TICKER_REPEATS = 8;
@@ -146,8 +147,11 @@ function Orbit({
 export function BigName() {
   const tuning = usePlayer((s) => s.tuning);
   const song = usePlayer((s) => s.nowPlaying);
+  const lines = useViz((s) => s.mode === "ridges");
   const meta = useStationMeta();
   const info = { name: meta?.name ?? "", tuning, freq: meta?.freq ?? null, song };
+  // The signal ridges fill the stage edge to edge: the big name would only fight them (the readout keeps it).
+  if (lines) return null;
   return (
     <>
       <Ticker {...info} />

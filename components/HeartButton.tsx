@@ -1,11 +1,10 @@
 "use client";
 
+import { toggleSaved, useSaved } from "@/lib/library/saved";
 import type { Station } from "@/lib/radio/types";
-import { useAuth } from "@/store/auth";
 
 export function HeartButton({ station, className }: { station: Station | null; className?: string }) {
-  const saved = useAuth((s) => (station ? s.saved.some((x) => x.id === station.id) : false));
-  const toggleSaved = useAuth((s) => s.toggleSaved);
+  const saved = useSaved().some((x) => x.id === station?.id);
 
   return (
     <button
@@ -13,7 +12,7 @@ export function HeartButton({ station, className }: { station: Station | null; c
       disabled={!station}
       aria-pressed={saved}
       aria-label={saved ? "Remove from saved" : "Save station"}
-      onClick={() => station && void toggleSaved(station)}
+      onClick={() => station && toggleSaved(station)}
       className={className}
     >
       <svg

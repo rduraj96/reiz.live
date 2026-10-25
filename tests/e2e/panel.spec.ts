@@ -33,17 +33,6 @@ async function setup(page: Page) {
   await page.goto("/");
 }
 
-const setUser = async (page: Page) => {
-  // The auth store module may evaluate after `load` (WebKit): wait for its E2E hook.
-  await page.waitForFunction(() => "__useAuth" in window);
-  return page.evaluate(() =>
-    (window as unknown as { __useAuth: { setState: (s: object) => void } }).__useAuth.setState({
-      user: { id: "u1" },
-      saved: [],
-    }),
-  );
-};
-
 test("SEARCH opens the Search tab and focuses the input", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "SEARCH" }).click();
@@ -85,22 +74,11 @@ test("tapping the paused current station in Recent resumes it", async ({ page })
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible({ timeout: 5000 });
 });
 
-test("SAVED while logged out asks to log in", async ({ page }) => {
+test("SAVED explains how to save when nothing is saved, with no login anywhere", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "SAVED" }).click();
-  await expect(page.getByText("Log in to save stations")).toBeVisible();
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("dialog")).toContainText("Login is unavailable right now");
-});
-
-test("SAVED while logged in offers Log out at least 44px tall", async ({ page }) => {
-  await setup(page);
-  await setUser(page);
-  await page.getByRole("button", { name: "SAVED" }).click();
-  const logOut = page.getByRole("button", { name: "Log out" });
-  await expect(logOut).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log in" })).toHaveCount(0);
-  expect((await logOut.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByText("No saved stations yet")).toBeVisible();
+  await expect(page.getByRole("button", { name: /log in|log out/i })).toHaveCount(0);
 });
 
 test("Escape closes the panel and returns focus to the trigger", async ({ page }) => {

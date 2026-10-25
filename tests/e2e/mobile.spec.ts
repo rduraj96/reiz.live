@@ -82,7 +82,7 @@ test("the language switch shows just the value below 760 px", async ({ page }) =
 test("phones start on the light 2D visualizer", async ({ page }) => {
   await setup(page);
   await expect(page.locator('canvas[data-viz="2d"]')).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /switch to 3D/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /switch to Lines/ })).toBeVisible();
 });
 
 test("the visualizer doesn't jump when the song line arrives", async ({ page }) => {

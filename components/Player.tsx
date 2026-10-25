@@ -7,7 +7,6 @@ import { BigName } from "@/components/BigName";
 import { Intro } from "@/components/Intro";
 import { GenreStrip } from "@/components/GenreStrip";
 import { Header } from "@/components/Header";
-import { LoginDialog } from "@/components/LoginDialog";
 import { Readout } from "@/components/Readout";
 import { StationPanel } from "@/components/StationPanel";
 import { Toast } from "@/components/Toast";
@@ -23,7 +22,7 @@ import { useAmbient } from "@/store/ambient";
 import { usePlayer } from "@/store/player";
 
 /**
- * The chrome blob is the play/pause button. "Tap to play" shows whenever the stream isn't playing; it is
+ * The middle of the stage is the play/pause button (the visualizer is drawn behind it). "Tap to play" shows whenever the stream isn't playing; it is
  * overlaid on the button rather than inside it, so the button's name ("Play") matches its content (axe).
  */
 function BlobButton() {
@@ -39,9 +38,7 @@ function BlobButton() {
           else tunerApi.tuneNearest();
         }}
         className="relative z-[2] grid aspect-square w-[var(--blob)] max-w-full cursor-pointer place-items-center rounded-full group-data-[idle]/player:cursor-none [grid-area:1/1] focus-visible:outline-offset-[-6px]"
-      >
-        <Visualizer />
-      </button>
+      />
       <span
         aria-hidden="true"
         className={`pointer-events-none relative z-[4] rounded-full bg-[rgba(10,10,10,0.55)] px-3 py-2 text-xs uppercase tracking-[0.14em] backdrop-blur-[6px] transition-[opacity,visibility] duration-300 [grid-area:1/1] ${playing ? "invisible opacity-0" : "opacity-100"}`}
@@ -87,9 +84,12 @@ export function Player({ initialStation }: { initialStation?: Station }) {
         </div>
       </div>
       <main className="flex min-h-0 flex-1 flex-col">
-        {/* The blob size fits the stage both ways: the orbit ring (1.55 × blob) must clear a short phone screen too. */}
-        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))] group-data-[ambient]/player:[--blob:min(70cqw,calc((100cqh-28px)/1.55))] min-[760px]:group-data-[ambient]/player:[--blob:min(80cqw,80cqh)]">
+        {/* The blob size fits the stage both ways: on phones the orbit ring (1.55 × blob) must clear a short screen too;
+            from 760 px (the ticker, no ring) it grows with the screen up to 640 px. */}
+        <div className="relative grid min-h-0 flex-1 place-items-center [container-type:size] [--blob:min(70cqw,360px,calc((100cqh-28px)/1.55))] min-[760px]:[--blob:min(60cqw,78cqh,640px)] group-data-[ambient]/player:[--blob:min(70cqw,calc((100cqh-28px)/1.55))] min-[760px]:group-data-[ambient]/player:[--blob:min(80cqw,80cqh)]">
           <BigName />
+          {/* Behind the button, at stage level, so the signal ridges can span the whole stage. */}
+          <Visualizer />
           <BlobButton />
         </div>
         <div className="grid transition-[grid-template-rows,opacity,visibility] duration-500 motion-reduce:transition-none grid-rows-[1fr] group-data-[ambient]/player:invisible group-data-[ambient]/player:grid-rows-[0fr] group-data-[ambient]/player:opacity-0">
@@ -104,7 +104,6 @@ export function Player({ initialStation }: { initialStation?: Station }) {
 
       <StationPanel />
       <AboutPanel open={aboutOpen} onOpenChange={setAboutOpen} />
-      <LoginDialog />
       <Toast />
       <Intro />
     </div>
